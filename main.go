@@ -7,22 +7,22 @@ import (
 	"time"
 )
 
-var pool *JobcoinWallet
+var pool *Wallet
 
 type Address string
 
-type JobcoinWallet struct {
+type Wallet struct {
 	client *http.Client
 	Address Address
 }
 
-func NewJobcoinWallet(address string) *JobcoinWallet {
-	return &JobcoinWallet{
+func NewWallet(address string) *Wallet {
+	return &Wallet{
 		&http.Client{}, Address(address),
 	}
 }
 
-func (j *JobcoinWallet) Send(recipient Address, amount int) error {
+func (w *Wallet) Send(recipient Address, amount int) error {
 	if amount <= 0 {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
@@ -100,23 +100,8 @@ func (m *Mixer) Run(){
 	wg.Wait()
 }
 
-func main (){
-	batch := &Batch{
-		10,
-		2,
-		[]Address{
-			Address("Address-1"), Address("Address-2"), Address("Address-3"),
-		},
-		[]Address{
-			Address("Address-1"), Address("Address-2"), 
-		},
-		make(chan bool),
-	}
-	batches := []*Batch{batch, batch, batch}
-	mixer := &Mixer{batches, &sync.WaitGroup{}}
-	mixer.Run()
-}
+func main(){}
 
 func init(){
-	pool = NewJobcoinWallet("Pool")
+	pool = NewWallet("Pool")
 }

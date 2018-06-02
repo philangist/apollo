@@ -2,24 +2,25 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 )
 
 func TestCreateWallet(t *testing.T){
 	fmt.Println("Running TestCreateWallet...")
 
-	j := NewJobcoinWallet("Alice")
+	j := NewWallet("Alice")
 	expected := Address("Alice")
 
 	if j.Address != expected {
-		t.Errorf("Jobcoin wallet was not created with expected address 'Alice'. Received '%s' instead", j.Address)
+		t.Errorf("Wallet was not created with expected address 'Alice'. Received '%s' instead", j.Address)
 	}
 }
 
 func TestWalletSend(t *testing.T){
 	fmt.Println("Running TestWalletSend...")
 
-	j := NewJobcoinWallet("Alice")
+	j := NewWallet("Alice")
 	b := Address("Bob")
 
 	cases := []struct{
@@ -46,7 +47,7 @@ func TestWalletSend(t *testing.T){
 	}
 }
 
-func TestBatchExecute(t *testing.T){
+func TestBatchTransfer(t *testing.T){
 	b := &Batch{
 		120,
 		20,
@@ -62,4 +63,21 @@ func TestBatchExecute(t *testing.T){
 	if err != nil {
 		t.Errorf("Expected Batch.Execute() to run successfully, received error '%s'", err)
 	}
+}
+
+func TestMixerRun(t *testing.T){
+	batch := &Batch{
+		10,
+		2,
+		[]Address{
+			Address("Address-1"), Address("Address-2"), Address("Address-3"),
+		},
+		[]Address{
+			Address("Address-1"), Address("Address-2"), 
+		},
+		make(chan bool),
+	}
+	batches := []*Batch{batch, batch, batch}
+	mixer := &Mixer{batches, &sync.WaitGroup{}}
+	mixer.Run()
 }

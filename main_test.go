@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestCreateWallet(t *testing.T){
@@ -58,6 +59,7 @@ func TestBatchTransfer(t *testing.T){
 			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"), 
 		},
 		make(chan bool),
+		time.Now(),
 	}
 	err := b.Transfer()
 	if err != nil {
@@ -70,12 +72,13 @@ func TestMixerRun(t *testing.T){
 		10,
 		2,
 		[]Address{
-			Address("Address-1"), Address("Address-2"), Address("Address-3"),
+			Address("Alice"), Address("Address-2"), Address("Address-3"),
 		},
 		[]Address{
 			Address("Address-1"), Address("Address-2"), 
 		},
 		make(chan bool),
+		time.Now(),
 	}
 	batches := []*Batch{batch} //, batch, batch}
 	mixer := &Mixer{batches, &sync.WaitGroup{}}

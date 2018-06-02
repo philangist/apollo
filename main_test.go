@@ -56,6 +56,7 @@ func TestBatchExecute(t *testing.T){
 		[]Address{
 			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"), 
 		},
+		make(chan bool),
 	}
 	err := b.Execute()
 	if err != nil {

@@ -77,7 +77,7 @@ func TestMixerRun(t *testing.T){
 		},
 		make(chan bool),
 	}
-	batches := []*Batch{batch, batch, batch}
+	batches := []*Batch{batch} //, batch, batch}
 	mixer := &Mixer{batches, &sync.WaitGroup{}}
 	mixer.Run()
 }

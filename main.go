@@ -54,20 +54,23 @@ func (b *Batch) Transfer () (err error) {
 }
 
 func (b *Batch) PollTransactions() {
-	poll := make(chan bool, 1)
+	poll := make(chan Address)
 
 	// concurrent threads of execution which poll the blockchain for transactions
 	// relevant to b.Sources
-	for i := 0; i < len(b.Sources); i++ {
-		go func(i int){
-			poll <- true
-		}(i)
+	for _, source := range b.Sources {
+		go func(source Address){
+			poll <- source
+		}(source)
 	}
 
-	// serial consumer of poll that makes sure every address in b.Sources
-	// has had a transaction sent to it
+	// serial consumer of poll that makes sure that:
+	// 1. every address in b.Sources has had a transaction sent to it
+	// 2. the Jobcoins for each address are then forwarded to the central pool
 	for j := 0; j < len(b.Sources); j++ {
-		<- poll
+		address := <- poll
+		w := Wallet{&http.Client{}, address}
+		w.Send(pool.Address, 4)
 	}
 	b.ready <- true
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestCreateWallet(t *testing.T){
+func TestCreateWallet(t *testing.T) {
 	fmt.Println("Running TestCreateWallet...")
 
 	j := NewWallet("Alice")
@@ -18,16 +18,16 @@ func TestCreateWallet(t *testing.T){
 	}
 }
 
-func TestWalletSend(t *testing.T){
+func TestWalletSend(t *testing.T) {
 	fmt.Println("Running TestWalletSend...")
 
 	j := NewWallet("Alice")
 	b := Address("Bob")
 
-	cases := []struct{
+	cases := []struct {
 		recipient Address
-		amount int
-		valid bool
+		amount    int
+		valid     bool
 	}{
 		{b, 100, true},
 		{b, 0, false},
@@ -48,7 +48,7 @@ func TestWalletSend(t *testing.T){
 	}
 }
 
-func TestBatchTransfer(t *testing.T){
+func TestBatchTransfer(t *testing.T) {
 	b := &Batch{
 		120,
 		20,
@@ -56,7 +56,7 @@ func TestBatchTransfer(t *testing.T){
 			Address("Address-1"), Address("Address-2"),
 		},
 		[]Address{
-			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"), 
+			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"),
 		},
 		make(chan bool),
 		time.Now(),
@@ -67,7 +67,7 @@ func TestBatchTransfer(t *testing.T){
 	}
 }
 
-func TestMixerRun(t *testing.T){
+func TestMixerRun(t *testing.T) {
 	batch := &Batch{
 		10,
 		2,
@@ -75,7 +75,7 @@ func TestMixerRun(t *testing.T){
 			Address("Alice"), Address("Address-2"), Address("Address-3"),
 		},
 		[]Address{
-			Address("Address-1"), Address("Address-2"), 
+			Address("Address-1"), Address("Address-2"),
 		},
 		make(chan bool),
 		time.Now(),

@@ -12,20 +12,20 @@ import (
 
 var (
 	TXNS_URL = "http://jobcoin.gemini.com/victory/api/transactions"
-	pool *Wallet
+	pool     *Wallet
 )
 
 type Address string
 
 type Transaction struct {
 	Timestamp time.Time `json:"timestamp"`
-	Source    Address `json:"fromAddress"`
-	Recipient Address `json:"toAddress"`
-	Amount    string  `json:"amount"`
+	Source    Address   `json:"fromAddress"`
+	Recipient Address   `json:"toAddress"`
+	Amount    string    `json:"amount"`
 }
 
 type Wallet struct {
-	client *http.Client
+	client  *http.Client
 	Address Address
 }
 
@@ -51,12 +51,12 @@ func (w *Wallet) GetTransactions() ([]*Transaction, error) {
 	b, err := w.JSONRequest(TXNS_URL)
 	if err != nil {
 		return allTxs, err
-	}	
+	}
 
 	json.Unmarshal(b, &allTxs)
 	for _, tx := range allTxs {
-		if tx.Recipient == w.Address{
-			filteredTxs = append(filteredTxs, tx)	
+		if tx.Recipient == w.Address {
+			filteredTxs = append(filteredTxs, tx)
 		}
 	}
 
@@ -87,17 +87,17 @@ func (w *Wallet) JSONRequest(url string) ([]byte, error) {
 }
 
 type Batch struct {
-	Amount int
-	Fee int
-	Sources []Address
+	Amount     int
+	Fee        int
+	Sources    []Address
 	Recipients []Address
-	ready chan bool
-	StartTime time.Time
+	ready      chan bool
+	StartTime  time.Time
 }
 
-func (b *Batch) Transfer () (err error) {
+func (b *Batch) Transfer() (err error) {
 	pool.Send(pool.Address, b.Fee)
-	portion := (b.Amount - b.Fee)/len(b.Recipients)
+	portion := (b.Amount - b.Fee) / len(b.Recipients)
 
 	for _, recipient := range b.Recipients {
 		err = pool.Send(recipient, portion)
@@ -120,7 +120,7 @@ func (b *Batch) PollTransactions() {
 	// concurrent threads of execution which poll the blockchain for transactions
 	// relevant to b.Sources
 	for _, source := range b.Sources {
-		go func(source Address){
+		go func(source Address) {
 			sum := 0
 			w := &Wallet{&http.Client{}, source}
 			txns, _ := w.GetTransactions()
@@ -138,18 +138,18 @@ func (b *Batch) PollTransactions() {
 	// 1. every address in b.Sources has had a transaction sent to it
 	// 2. the Jobcoins for each address are then forwarded to the central pool
 	for j := 0; j < len(b.Sources); j++ {
-		message := <- poll
+		message := <-poll
 		w := Wallet{&http.Client{}, message.address}
 		w.Send(pool.Address, message.amount)
 	}
 	b.ready <- true
 }
 
-func (b *Batch) Run (wg *sync.WaitGroup){
+func (b *Batch) Run(wg *sync.WaitGroup) {
 	go b.PollTransactions()
 	for {
 		select {
-		case <- b.ready:
+		case <-b.ready:
 			b.Transfer()
 			wg.Done()
 		case <-time.After(5 * time.Second):
@@ -160,11 +160,11 @@ func (b *Batch) Run (wg *sync.WaitGroup){
 }
 
 type Mixer struct {
-	Batches []*Batch
+	Batches   []*Batch
 	WaitGroup *sync.WaitGroup
 }
 
-func (m *Mixer) Run(){
+func (m *Mixer) Run() {
 	wg := m.WaitGroup
 	for _, b := range m.Batches {
 		wg.Add(1)
@@ -173,11 +173,11 @@ func (m *Mixer) Run(){
 	wg.Wait()
 }
 
-func main(){
+func main() {
 	w := NewWallet("Alice")
 	w.GetTransactions()
 }
 
-func init(){
+func init() {
 	pool = NewWallet("Pool")
 }

@@ -45,3 +45,20 @@ func TestWalletSend(t *testing.T){
 		}
 	}
 }
+
+func TestBatchExecute(t *testing.T){
+	b := &Batch{
+		120,
+		20,
+		[]Address{
+			Address("Address-1"), Address("Address-2"),
+		},
+		[]Address{
+			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"), 
+		},
+	}
+	err := b.Execute()
+	if err != nil {
+		t.Errorf("Expected Batch.Execute() to run successfully, received error '%s'", err)
+	}
+}

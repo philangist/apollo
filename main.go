@@ -5,13 +5,14 @@ import (
 	"net/http"
 )
 
+var pool *JobcoinWallet
+
 type Address string
 
 type Wallet interface {
 	Address() Address
 	Send(recipient *Address, amount int) error
 }
-
 
 type JobcoinWallet struct {
 	client *http.Client
@@ -30,6 +31,8 @@ func (j *JobcoinWallet) Send(recipient Address, amount int) error {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
+	fmt.Printf("Sending amount '%d' to recipient '%s'\n", amount, recipient)
+
 	return nil
 }
 
@@ -44,8 +47,22 @@ type Batch struct {
 	Recipients []Address
 }
 
-func (b *Batch) Execute () {}
+func (b *Batch) Execute () (err error) {
+	pool.Send(pool.Address(), b.Fee)
+	portion := (b.Amount - b.Fee)/len(b.Recipients)
 
-func main (){
+	for _, recipient := range b.Recipients {
+		err = pool.Send(recipient, portion)
+		if err != nil {
+			return err
+		}
+	}
 
+	return err
+}
+
+func main (){}
+
+func init(){
+	pool = NewJobcoinWallet("Pool")
 }

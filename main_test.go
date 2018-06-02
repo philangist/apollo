@@ -11,8 +11,8 @@ func TestCreateWallet(t *testing.T){
 	j := NewJobcoinWallet("Alice")
 	expected := Address("Alice")
 
-	if j.Address() != expected {
-		t.Errorf("Jobcoin wallet was not created with expected address 'Alice'. Received '%s' instead", j.Address())
+	if j.Address != expected {
+		t.Errorf("Jobcoin wallet was not created with expected address 'Alice'. Received '%s' instead", j.Address)
 	}
 }
 
@@ -58,7 +58,7 @@ func TestBatchExecute(t *testing.T){
 		},
 		make(chan bool),
 	}
-	err := b.Execute()
+	err := b.Transfer()
 	if err != nil {
 		t.Errorf("Expected Batch.Execute() to run successfully, received error '%s'", err)
 	}

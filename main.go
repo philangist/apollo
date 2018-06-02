@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -12,20 +11,14 @@ var pool *JobcoinWallet
 
 type Address string
 
-type Wallet interface {
-	Address() Address
-	Send(recipient *Address, amount int) error
-}
-
 type JobcoinWallet struct {
 	client *http.Client
-	address Address
+	Address Address
 }
 
 func NewJobcoinWallet(address string) *JobcoinWallet {
 	return &JobcoinWallet{
-		client: &http.Client{},
-		address: Address(address),
+		&http.Client{}, Address(address),
 	}
 }
 
@@ -38,10 +31,6 @@ func (j *JobcoinWallet) Send(recipient Address, amount int) error {
 	return nil
 }
 
-func (j *JobcoinWallet) Address() Address {
-	return j.address
-}
-
 type Batch struct {
 	Amount int
 	Fee int
@@ -50,8 +39,8 @@ type Batch struct {
 	ready chan bool
 }
 
-func (b *Batch) Execute () (err error) {
-	pool.Send(pool.Address(), b.Fee)
+func (b *Batch) Transfer () (err error) {
+	pool.Send(pool.Address, b.Fee)
 	portion := (b.Amount - b.Fee)/len(b.Recipients)
 
 	for _, recipient := range b.Recipients {
@@ -66,47 +55,49 @@ func (b *Batch) Execute () (err error) {
 
 func (b *Batch) PollTransactions() {
 	poll := make(chan bool, 1)
+
+	// concurrent threads of execution which poll the blockchain for transactions
+	// relevant to b.Sources
 	for i := 0; i < len(b.Sources); i++ {
 		go func(i int){
-			time.Sleep(1 * time.Second)
-			fmt.Printf("fetched source i=%d within polling goroutine\n", i)
 			poll <- true
 		}(i)
 	}
 
+	// serial consumer of poll that makes sure every address in b.Sources
+	// has had a transaction sent to it
 	for j := 0; j < len(b.Sources); j++ {
-		fmt.Printf("blocked on source i=%d within iterator goroutine\n", j)
 		<- poll
 	}
 	b.ready <- true
-	fmt.Println("b.ready <- true")
+}
+
+func (b *Batch) Run (wg *sync.WaitGroup){
+	go b.PollTransactions()
+	for {
+		select {
+		case <- b.ready:
+			b.Transfer()
+			wg.Done()
+		case <-time.After(5 * time.Second):
+			// return errors.New("Timeout hit")
+			wg.Done()
+		}
+	}
 }
 
 type Mixer struct {
 	Batches []*Batch
+	WaitGroup *sync.WaitGroup
 }
 
-func (p *Mixer) Run(wg *sync.WaitGroup) (err error){
-	for _, b := range p.Batches {
+func (m *Mixer) Run(){
+	wg := m.WaitGroup
+	for _, b := range m.Batches {
 		wg.Add(1)
-		go func(b *Batch){
-			fmt.Println("Running b.PollTransactions()")
-			go b.PollTransactions()
-			for {
-				select {
-				case <- b.ready:
-					fmt.Println("read <- b.ready")
-					b.Execute()
-					wg.Done()
-				case <-time.After(5 * time.Second):
-					fmt.Println("Timeout hit")
-					// return errors.New("Timeout hit")
-					wg.Done()
-				}
-			}
-		}(b)
+		go b.Run(wg)
 	}
-	return err
+	wg.Wait()
 }
 
 func main (){
@@ -122,10 +113,8 @@ func main (){
 		make(chan bool),
 	}
 	batches := []*Batch{batch, batch, batch}
-	mixer := &Mixer{batches}
-	wg := &sync.WaitGroup{}
-	mixer.Run(wg)
-	wg.Wait()
+	mixer := &Mixer{batches, &sync.WaitGroup{}}
+	mixer.Run()
 }
 
 func init(){

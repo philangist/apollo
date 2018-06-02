@@ -22,9 +22,26 @@ func TestWalletSend(t *testing.T){
 	j := NewJobcoinWallet("Alice")
 	b := Address("Bob")
 
-	err := j.Send(b, 100)
+	cases := []struct{
+		recipient Address
+		amount int
+		valid bool
+	}{
+		{b, 100, true},
+		{b, 0, false},
+		{b, -100, false},
+	}
 
-	if err != nil {
-		t.Errorf("Jobcoin wallet did not successfully send amount '100' to recipient 'Bob'. Saw error '%s' instead", err)
+	for _, c := range cases {
+		err := j.Send(c.recipient, c.amount)
+		if c.valid {
+			if err != nil {
+				t.Errorf("Did not successfully send amount '%d' to recipient '%s'. Saw error '%s' instead", c.amount, c.recipient, err)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("Request to send amount '%d' to recipient '%s' was unexpectedly successful", c.amount, c.recipient)
+			}
+		}
 	}
 }

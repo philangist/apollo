@@ -1,11 +1,14 @@
 package main
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 type Address string
 
 type Wallet interface {
-	Address() *Address
+	Address() Address
 	Send(recipient *Address, amount int) error
 }
 
@@ -23,7 +26,10 @@ func NewJobcoinWallet(address string) *JobcoinWallet {
 }
 
 func (j *JobcoinWallet) Send(recipient Address, amount int) error {
-	// enforce amount is gte zero
+	if amount <= 0 {
+		return fmt.Errorf("amount should be a positive integer value")
+	}
+
 	return nil
 }
 

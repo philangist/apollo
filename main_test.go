@@ -18,8 +18,8 @@ func TestCreateWallet(t *testing.T) {
 	}
 }
 
-func TestWalletSend(t *testing.T) {
-	fmt.Println("Running TestWalletSend...")
+func TestWalletSendTransaction(t *testing.T) {
+	fmt.Println("Running TestWalletSendTransaction...")
 
 	j := NewWallet("Alice")
 	b := Address("Bob")
@@ -35,7 +35,7 @@ func TestWalletSend(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		err := j.Send(c.recipient, c.amount)
+		err := j.SendTransaction(c.recipient, c.amount)
 		if c.valid {
 			if err != nil {
 				t.Errorf("Did not successfully send amount '%d' to recipient '%s'. Saw error '%s' instead", c.amount, c.recipient, err)
@@ -72,7 +72,7 @@ func TestMixerRun(t *testing.T) {
 		10,
 		2,
 		[]Address{
-			Address("Alice"), Address("Address-2"), Address("Address-3"),
+			Address("Alice"), // Address("Address-2"), Address("Address-3")
 		},
 		[]Address{
 			Address("Address-1"), Address("Address-2"),

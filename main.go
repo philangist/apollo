@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"sync"
@@ -11,7 +13,8 @@ import (
 )
 
 var (
-	TXNS_URL = "http://jobcoin.gemini.com/victory/api/transactions"
+	FETCH_TXNS_URL = "http://jobcoin.gemini.com/victory/api/transactions"
+	SEND_TXN_URL = "http://jobcoin.gemini.com/victory/send"
 	pool     *Wallet
 )
 
@@ -35,11 +38,24 @@ func NewWallet(address string) *Wallet {
 	}
 }
 
-func (w *Wallet) Send(recipient Address, amount int) error {
+func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 	if amount <= 0 {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
+	tx := Transaction{time.Now(), w.Address, recipient, fmt.Sprintf("%d", amount)}
+	serializedTx, err := json.Marshal(tx)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	txBuffer := bytes.NewBuffer(serializedTx)
+
+	err = w.JSONPostRequest(SEND_TXN_URL, txBuffer)
+	if err != nil {
+		log.Panic(err)
+	}
+	
 	fmt.Printf("Sending amount '%d' to recipient '%s'\n", amount, recipient)
 	return nil
 }
@@ -48,7 +64,7 @@ func (w *Wallet) GetTransactions() ([]*Transaction, error) {
 	var allTxs []*Transaction
 	var filteredTxs []*Transaction
 
-	b, err := w.JSONRequest(TXNS_URL)
+	b, err := w.JSONGetRequest(FETCH_TXNS_URL)
 	if err != nil {
 		return allTxs, err
 	}
@@ -63,7 +79,35 @@ func (w *Wallet) GetTransactions() ([]*Transaction, error) {
 	return filteredTxs, nil
 }
 
-func (w *Wallet) JSONRequest(url string) ([]byte, error) {
+func (w *Wallet) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
+	request, err := http.NewRequest(
+		"POST",
+		url,
+		payload,
+	)
+
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+
+	response, err := w.client.Do(request)
+	fmt.Printf("response was %v\n", response)
+	fmt.Printf("error was %s\n", err)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf(
+			"POST json request to url '%s' returned unexpected status code %d", url, response.StatusCode)
+	}
+
+	return nil
+}
+
+func (w *Wallet) JSONGetRequest(url string) ([]byte, error) {
 	var byteStream []byte
 
 	request, err := http.NewRequest("GET", url, nil)
@@ -96,11 +140,11 @@ type Batch struct {
 }
 
 func (b *Batch) Transfer() (err error) {
-	pool.Send(pool.Address, b.Fee)
+	pool.SendTransaction(pool.Address, b.Fee)
 	portion := (b.Amount - b.Fee) / len(b.Recipients)
 
 	for _, recipient := range b.Recipients {
-		err = pool.Send(recipient, portion)
+		err = pool.SendTransaction(recipient, portion)
 		if err != nil {
 			return err
 		}
@@ -117,21 +161,37 @@ func (b *Batch) PollTransactions() {
 
 	poll := make(chan pollMessage)
 
-	// concurrent threads of execution which poll the blockchain for transactions
-	// relevant to b.Sources
-	for _, source := range b.Sources {
-		go func(source Address) {
+	pollAddress := func(source Address) {
+		fmt.Printf("b.StartTime is %s\n", b.StartTime)
+
+		for {
 			sum := 0
 			w := &Wallet{&http.Client{}, source}
 			txns, _ := w.GetTransactions()
 
 			for _, txn := range txns {
+				if txn.Timestamp.Before(b.StartTime){
+					continue
+				}
+				fmt.Printf("latest txn.Timestamp is %s\n", txn.Timestamp)
 				amount, _ := strconv.ParseInt(txn.Amount, 10, 32)
 				sum += int(amount)
 			}
 
-			poll <- pollMessage{source, sum}
-		}(source)
+			fmt.Printf("Sum is %d\n", sum)
+
+			if sum > 0 {
+				poll <- pollMessage{source, sum}
+				break
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}
+
+	// concurrent threads of execution which poll the blockchain for transactions
+	// relevant to b.Sources
+	for _, source := range b.Sources {
+		go pollAddress(source)
 	}
 
 	// serial consumer of poll that makes sure that:
@@ -140,7 +200,7 @@ func (b *Batch) PollTransactions() {
 	for j := 0; j < len(b.Sources); j++ {
 		message := <-poll
 		w := Wallet{&http.Client{}, message.address}
-		w.Send(pool.Address, message.amount)
+		w.SendTransaction(pool.Address, message.amount)
 	}
 	b.ready <- true
 }
@@ -152,7 +212,7 @@ func (b *Batch) Run(wg *sync.WaitGroup) {
 		case <-b.ready:
 			b.Transfer()
 			wg.Done()
-		case <-time.After(5 * time.Second):
+		case <-time.After(15 * time.Second):
 			// return errors.New("Timeout hit")
 			wg.Done()
 		}
@@ -174,8 +234,8 @@ func (m *Mixer) Run() {
 }
 
 func main() {
-	w := NewWallet("Alice")
-	w.GetTransactions()
+	w := NewWallet("to")
+	w.SendTransaction(Address("Alice"), 5)
 }
 
 func init() {

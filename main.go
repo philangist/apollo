@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	// "crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
@@ -28,13 +30,13 @@ type Transaction struct {
 }
 
 type Wallet struct {
-	client  *http.Client
+	client  *ApiClient
 	Address Address
 }
 
 func NewWallet(address string) *Wallet {
 	return &Wallet{
-		&http.Client{}, Address(address),
+		NewApiClient(), Address(address),
 	}
 }
 
@@ -51,7 +53,7 @@ func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 
 	txBuffer := bytes.NewBuffer(serializedTx)
 
-	err = w.JSONPostRequest(SEND_TXN_URL, txBuffer)
+	err = w.client.JSONPostRequest(SEND_TXN_URL, txBuffer)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -64,7 +66,7 @@ func (w *Wallet) GetTransactions() ([]*Transaction, error) {
 	var allTxs []*Transaction
 	var filteredTxs []*Transaction
 
-	b, err := w.JSONGetRequest(FETCH_TXNS_URL)
+	b, err := w.client.JSONGetRequest(FETCH_TXNS_URL)
 	if err != nil {
 		return allTxs, err
 	}
@@ -79,21 +81,26 @@ func (w *Wallet) GetTransactions() ([]*Transaction, error) {
 	return filteredTxs, nil
 }
 
-func (w *Wallet) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
+type ApiClient struct {
+	*http.Client
+}
+
+func NewApiClient() *ApiClient {
+	return &ApiClient{&http.Client{}}
+}
+
+func (j *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
 	request, err := http.NewRequest(
 		"POST",
 		url,
 		payload,
 	)
-
 	if err != nil {
 		return err
 	}
-	request.Header.Set("Content-Type", "application/json")
 
-	response, err := w.client.Do(request)
-	fmt.Printf("response was %v\n", response)
-	fmt.Printf("error was %s\n", err)
+	request.Header.Set("Content-Type", "application/json")
+	response, err := j.Do(request)
 	if err != nil {
 		return err
 	}
@@ -107,7 +114,7 @@ func (w *Wallet) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
 	return nil
 }
 
-func (w *Wallet) JSONGetRequest(url string) ([]byte, error) {
+func (j *ApiClient) JSONGetRequest(url string) ([]byte, error) {
 	var byteStream []byte
 
 	request, err := http.NewRequest("GET", url, nil)
@@ -115,7 +122,7 @@ func (w *Wallet) JSONGetRequest(url string) ([]byte, error) {
 		return byteStream, err
 	}
 
-	response, err := w.client.Do(request)
+	response, err := j.Do(request)
 	if err != nil {
 		return byteStream, err
 	}
@@ -139,7 +146,7 @@ type Batch struct {
 	StartTime  time.Time
 }
 
-func (b *Batch) Transfer() (err error) {
+func (b *Batch) Tumble() (err error) {
 	pool.SendTransaction(pool.Address, b.Fee)
 	portion := (b.Amount - b.Fee) / len(b.Recipients)
 
@@ -166,7 +173,7 @@ func (b *Batch) PollTransactions() {
 
 		for {
 			sum := 0
-			w := &Wallet{&http.Client{}, source}
+			w := &Wallet{NewApiClient(), source}
 			txns, _ := w.GetTransactions()
 
 			for _, txn := range txns {
@@ -199,7 +206,7 @@ func (b *Batch) PollTransactions() {
 	// 2. the Jobcoins for each address are then forwarded to the central pool
 	for j := 0; j < len(b.Sources); j++ {
 		message := <-poll
-		w := Wallet{&http.Client{}, message.address}
+		w := Wallet{NewApiClient(), message.address}
 		w.SendTransaction(pool.Address, message.amount)
 	}
 	b.ready <- true
@@ -210,10 +217,9 @@ func (b *Batch) Run(wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-b.ready:
-			b.Transfer()
+			b.Tumble()
 			wg.Done()
 		case <-time.After(15 * time.Second):
-			// return errors.New("Timeout hit")
 			wg.Done()
 		}
 	}
@@ -222,6 +228,21 @@ func (b *Batch) Run(wg *sync.WaitGroup) {
 type Mixer struct {
 	Batches   []*Batch
 	WaitGroup *sync.WaitGroup
+}
+
+func (m *Mixer) CreateAddresses(total int) (addresses []Address) {
+	// hash this shieeeeet
+	nonce := rand.Intn(4294967296)
+	prefix := fmt.Sprintf("Address: %d-%d", time.Now().Unix(), nonce)
+
+	for i:=0; i < total; i++ {
+		addresses = append(
+			addresses,
+			Address(fmt.Sprintf("%s-%d", prefix, i)),
+		)
+	}
+
+	return addresses
 }
 
 func (m *Mixer) Run() {
@@ -234,8 +255,11 @@ func (m *Mixer) Run() {
 }
 
 func main() {
-	w := NewWallet("to")
-	w.SendTransaction(Address("Alice"), 5)
+	// w := NewWallet("to")
+	// w.SendTransaction(Address("Alice"), 5)
+	// fmt.Printf("%s\n", now)
+	m := &Mixer{}
+	fmt.Printf("%q", m.CreateAddresses(5))
 }
 
 func init() {

@@ -48,7 +48,9 @@ func TestWalletSendTransaction(t *testing.T) {
 	}
 }
 
-func TestBatchTransfer(t *testing.T) {
+func TestBatchTumble(t *testing.T) {
+	fmt.Println("Running TestBatchTumble...")
+
 	b := &Batch{
 		120,
 		20,
@@ -61,13 +63,15 @@ func TestBatchTransfer(t *testing.T) {
 		make(chan bool),
 		time.Now(),
 	}
-	err := b.Transfer()
+	err := b.Tumble()
 	if err != nil {
 		t.Errorf("Expected Batch.Execute() to run successfully, received error '%s'", err)
 	}
 }
 
 func TestMixerRun(t *testing.T) {
+	fmt.Println("Running TestMixerRun...")
+
 	batch := &Batch{
 		10,
 		2,

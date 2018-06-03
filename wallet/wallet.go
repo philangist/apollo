@@ -22,7 +22,7 @@ type Address string
 func CreateAddresses(total int) (addresses []Address) {
 	// hash this shieeeeet
 	nonce := rand.Intn(4294967296)
-	prefix := fmt.Sprintf("Address: %d-%d", time.Now().Unix(), nonce)
+	prefix := fmt.Sprintf("%d-%d", time.Now().Unix(), nonce)
 
 	for i:=0; i < total; i++ {
 		addresses = append(
@@ -84,6 +84,8 @@ func (w *Wallet) GetTransactions() ([]*Transaction, error) {
 	}
 
 	json.Unmarshal(b, &allTxs)
+
+
 	for _, tx := range allTxs {
 		if tx.Recipient == w.Address {
 			filteredTxs = append(filteredTxs, tx)

@@ -57,7 +57,7 @@ func (b *Batch) PollTransactions() {
 	poll := make(chan pollMessage)
 
 	pollAddress := func(source Address) {
-		fmt.Printf("b.StartTime is %s\n. Polling address: %s", b.StartTime, source)
+		fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, source)
 
 		for {
 			sum := 0
@@ -106,8 +106,6 @@ func (b *Batch) Run(wg *sync.WaitGroup) {
 		select {
 		case <-b.ready:
 			b.Tumble()
-			wg.Done()
-		case <-time.After(1500 * time.Second):
 			wg.Done()
 		}
 	}

@@ -2,25 +2,19 @@ package wallet
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"sync"
 	"time"
 )
 
-var (
-	pool     *Wallet
-)
-
-func init() {
-	pool = NewWallet("Pool")
-}
+var pool = NewWallet("Pool")
 
 type Batch struct {
 	Amount     int
 	Fee        int
 	Source     Address
 	Recipients []Address
-	ready      chan bool
 	StartTime  time.Time
 }
 
@@ -30,7 +24,6 @@ func NewBatch(amount, fee int, source Address, recipients []Address) *Batch {
 		fee,
 		source,
 		recipients,
-		make(chan bool),
 		time.Now(),
 	}
 }
@@ -39,6 +32,7 @@ func (b *Batch) Tumble() (err error) {
 	portion := (b.Amount - b.Fee) / len(b.Recipients)
 
 	for _, recipient := range b.Recipients {
+		time.Sleep(time.Duration(rand.Intn(120)) * time.Second)
 		err = pool.SendTransaction(recipient, portion)
 		if err != nil {
 			return err
@@ -49,14 +43,14 @@ func (b *Batch) Tumble() (err error) {
 }
 
 func (b *Batch) PollTransactions() {
-	source := b.Source
-	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, source)
-	w := &Wallet{NewApiClient(), source}
+	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source)
+
+	w := &Wallet{NewApiClient(), b.Source}
 	seen := false
-	timeout := time.Now().Add(15 * time.Second)
+	timeout := time.Now().Add(time.Duration(5) * time.Second)
 
 	for {
-		if (timeout.After(time.Now())) {
+		if (timeout.Before(time.Now())) {
 			return
 		}
 

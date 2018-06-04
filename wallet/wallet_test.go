@@ -58,7 +58,6 @@ func TestBatchTumble(t *testing.T) {
 		[]Address{
 			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"),
 		},
-		make(chan bool),
 		time.Now(),
 	}
 	err := b.Tumble()
@@ -77,7 +76,6 @@ func TestMixerRun(t *testing.T) {
 		[]Address{
 			Address("Address-1"), Address("Address-2"),
 		},
-		make(chan bool),
 		time.Now(),
 	}
 	batches := []*Batch{batch} //, batch, batch}

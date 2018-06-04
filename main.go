@@ -13,7 +13,7 @@ type CLI struct {}
 
 func (cli *CLI) Usage() {
 	fmt.Println("Usage:")
-	fmt.Println("   --amount AMOUNT --destination ADDRESSES - Send AMOUNT of Jobcoins to ADDRESSES that you own")
+	fmt.Println("   --amount AMOUNT --destination \"ADDRESS1 ADDRESS2 ...ADDRESSN\" - Send AMOUNT of Jobcoins to ADDRESSES that you own")
 }
 
 func (cli *CLI) Parse() (int, []wallet.Address) {

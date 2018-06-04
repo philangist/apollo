@@ -52,15 +52,20 @@ func (b *Batch) PollTransactions() {
 	source := b.Source
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, source)
 	w := &Wallet{NewApiClient(), source}
-
 	seen := false
+	timeout := time.Now().Add(15 * time.Second)
+
 	for {
+		if (timeout.After(time.Now())) {
+			return
+		}
+
 		txns, _ := w.GetTransactions(b.StartTime)
 		for _, txn := range txns {
 			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
 			amount, _ := strconv.ParseInt(txn.Amount, 10, 32)
 			w.SendTransaction(pool.Address, int(amount))
-			done = true
+			seen = true
 		}
 		if seen == false {
 			time.Sleep(5 * time.Second)

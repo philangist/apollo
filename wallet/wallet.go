@@ -74,7 +74,7 @@ func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 	return nil
 }
 
-func (w *Wallet) GetTransactions() ([]*Transaction, error) {
+func (w *Wallet) GetTransactions(after time.Time) ([]*Transaction, error) {
 	var allTxs []*Transaction
 	var filteredTxs []*Transaction
 
@@ -87,7 +87,7 @@ func (w *Wallet) GetTransactions() ([]*Transaction, error) {
 
 
 	for _, tx := range allTxs {
-		if tx.Recipient == w.Address {
+		if ((tx.Recipient == w.Address) && tx.Timestamp.After(after)){
 			filteredTxs = append(filteredTxs, tx)
 		}
 	}

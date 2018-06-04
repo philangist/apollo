@@ -54,9 +54,7 @@ func TestBatchTumble(t *testing.T) {
 	b := &Batch{
 		120,
 		20,
-		[]Address{
-			Address("Address-1"), Address("Address-2"),
-		},
+		Address("Address-1"),
 		[]Address{
 			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"),
 		},
@@ -75,9 +73,7 @@ func TestMixerRun(t *testing.T) {
 	batch := &Batch{
 		10,
 		2,
-		[]Address{
-			Address("Alice"), // Address("Address-2"), Address("Address-3")
-		},
+		Address("Alice"),
 		[]Address{
 			Address("Address-1"), Address("Address-2"),
 		},

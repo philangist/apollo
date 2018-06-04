@@ -18,17 +18,17 @@ func init() {
 type Batch struct {
 	Amount     int
 	Fee        int
-	Sources    []Address
+	Source     Address
 	Recipients []Address
 	ready      chan bool
 	StartTime  time.Time
 }
 
-func NewBatch(amount, fee int, sources, recipients []Address) *Batch {
+func NewBatch(amount, fee int, source Address, recipients []Address) *Batch {
 	return &Batch{
 		amount,
 		fee,
-		sources,
+		source,
 		recipients,
 		make(chan bool),
 		time.Now(),
@@ -49,66 +49,31 @@ func (b *Batch) Tumble() (err error) {
 }
 
 func (b *Batch) PollTransactions() {
-	type pollMessage struct {
-		address Address
-		amount  int
-	}
+	source := b.Source
+	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, source)
+	w := &Wallet{NewApiClient(), source}
 
-	poll := make(chan pollMessage)
-
-	pollAddress := func(source Address) {
-		fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, source)
-
-		for {
-			sum := 0
-			w := &Wallet{NewApiClient(), source}
-			txns, _ := w.GetTransactions()
-
-			for _, txn := range txns {
-				if txn.Timestamp.Before(b.StartTime){
-					continue
-				}
-				fmt.Printf("latest txn.Timestamp is %s\n", txn.Timestamp)
-				amount, _ := strconv.ParseInt(txn.Amount, 10, 32)
-				sum += int(amount)
-			}
-
-			fmt.Printf("Sum is %d\n", sum)
-
-			if sum > 0 {
-				poll <- pollMessage{source, sum}
-				break
-			}
-			time.Sleep(5 * time.Second)
+	seen := false
+	for {
+		txns, _ := w.GetTransactions(b.StartTime)
+		for _, txn := range txns {
+			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
+			amount, _ := strconv.ParseInt(txn.Amount, 10, 32)
+			w.SendTransaction(pool.Address, int(amount))
+			done = true
 		}
+		if seen == false {
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		b.Tumble()
+		return
 	}
-
-	// concurrent threads of execution which poll the blockchain for transactions
-	// relevant to b.Sources
-	for _, source := range b.Sources {
-		go pollAddress(source)
-	}
-
-	// serial consumer of poll that makes sure that:
-	// 1. every address in b.Sources has had a transaction sent to it
-	// 2. the Jobcoins for each address are then forwarded to the central pool
-	for j := 0; j < len(b.Sources); j++ {
-		message := <-poll
-		w := Wallet{NewApiClient(), message.address}
-		w.SendTransaction(pool.Address, message.amount)
-	}
-	b.ready <- true
 }
 
 func (b *Batch) Run(wg *sync.WaitGroup) {
-	go b.PollTransactions()
-	for {
-		select {
-		case <-b.ready:
-			b.Tumble()
-			wg.Done()
-		}
-	}
+	b.PollTransactions()
+	wg.Done()
 }
 
 type Mixer struct {

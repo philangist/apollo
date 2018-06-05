@@ -42,7 +42,6 @@ func main() {
 
 	fee := 2
 	batch := wallet.NewBatch(amount, fee, source, recipients)
-
 	m := wallet.NewMixer([]*wallet.Batch{batch})
 	m.Run()
 }

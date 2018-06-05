@@ -28,12 +28,41 @@ func NewBatch(amount, fee int, source Address, recipients []Address) *Batch {
 	}
 }
 
-func (b *Batch) Tumble() (err error) {
-	portion := (b.Amount - b.Fee) / len(b.Recipients)
+func (b *Batch) generatePayouts(amount, totalRecipients int) []int {
+	rand.Seed(time.Now().UnixNano())
+	payouts := []int{}
 
-	for _, recipient := range b.Recipients {
-		time.Sleep(time.Duration(rand.Intn(120)) * time.Second)
-		err = pool.SendTransaction(recipient, portion)
+	for index := 0; index < totalRecipients; index++ {
+		if (index + 1) == totalRecipients {
+			payouts = append(payouts, amount)
+		} else {
+			// comment explaining this tomfoolery
+			upperBound := amount / 2
+			if  upperBound == 0 {
+				payouts = append(payouts, amount)
+				break
+			}
+			portion := rand.Intn(upperBound) + 1 //rand.Intn returns [0, n) and we never want a zero value
+			payouts = append(payouts, portion)
+			amount -= portion
+		}
+	}
+
+	return payouts
+}
+
+func (b *Batch) Tumble() (err error) {
+	amount := b.Amount - b.Fee //keep b.Fee amount in the pool
+	totalRecipients := len(b.Recipients)
+
+	payouts := b.generatePayouts(amount, totalRecipients)
+
+	rand.Seed(time.Now().UnixNano())
+	for index, payout := range payouts {
+		sleep := time.Duration(rand.Intn(10)) * time.Second
+		time.Sleep(sleep)
+
+		err = pool.SendTransaction(b.Recipients[index], payout)
 		if err != nil {
 			return err
 		}
@@ -47,7 +76,7 @@ func (b *Batch) PollTransactions() {
 
 	w := &Wallet{NewApiClient(), b.Source}
 	seen := false
-	timeout := time.Now().Add(time.Duration(5) * time.Second)
+	timeout := time.Now().Add(time.Duration(30) * time.Second)
 
 	for {
 		if (timeout.Before(time.Now())) {

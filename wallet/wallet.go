@@ -21,6 +21,7 @@ type Address string
 
 func CreateAddresses(total int) (addresses []Address) {
 	// hash this shieeeeet
+	rand.Seed(time.Now().UnixNano())
 	nonce := rand.Intn(4294967296)
 	prefix := fmt.Sprintf("%d-%d", time.Now().Unix(), nonce)
 
@@ -53,6 +54,7 @@ func NewWallet(address string) *Wallet {
 }
 
 func (w *Wallet) SendTransaction(recipient Address, amount int) error {
+	fmt.Printf("Sending amount '%d' to recipient '%s'\n", amount, recipient)
 	if amount <= 0 {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
@@ -64,13 +66,11 @@ func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 	}
 
 	txBuffer := bytes.NewBuffer(serializedTx)
-
 	err = w.client.JSONPostRequest(SEND_TXN_URL, txBuffer)
 	if err != nil {
 		log.Panic(err)
 	}
-	
-	fmt.Printf("Sending amount '%d' to recipient '%s'\n", amount, recipient)
+
 	return nil
 }
 

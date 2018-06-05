@@ -90,9 +90,10 @@ func (b *Batch) PollTransactions() {
 		for _, txn := range txns {
 			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
 			amount, _ := strconv.ParseInt(txn.Amount, 10, 32)
-			w.SendTransaction(pool.Address, int(amount) * 100)
-			sum += int(amount) * 100
-			fmt.Printf("amount is %d\n", int(amount) * 100)
+			amount = amount * 100
+			w.SendTransaction(pool.Address, int(amount))
+			sum += int(amount)
+			fmt.Printf("amount is %d\n", int(amount))
 			seen = true
 		}
 		// if sum < b.Amount {

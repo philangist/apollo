@@ -52,7 +52,7 @@ func NewApiClient() *ApiClient {
 }
 
 
-func (j *ApiClient) JSONGetRequest(url string) ([]byte, error) {
+func (a *ApiClient) JSONGetRequest(url string) ([]byte, error) {
 	var byteStream []byte
 
 	request, err := http.NewRequest("GET", url, nil)
@@ -60,7 +60,7 @@ func (j *ApiClient) JSONGetRequest(url string) ([]byte, error) {
 		return byteStream, err
 	}
 
-	response, err := j.Do(request)
+	response, err := a.Do(request)
 	if err != nil {
 		return byteStream, err
 	}
@@ -75,7 +75,7 @@ func (j *ApiClient) JSONGetRequest(url string) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-func (j *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
+func (a *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
 	request, err := http.NewRequest(
 		"POST",
 		url,
@@ -86,7 +86,7 @@ func (j *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
 	}
 
 	request.Header.Set("Content-Type", "application/json")
-	response, err := j.Do(request)
+	response, err := a.Do(request)
 	if err != nil {
 		return err
 	}
@@ -122,6 +122,9 @@ func (w *Wallet) convertAmount(amount int) string {
 	fmt.Printf("ConvertAmount(%d)\n", amount)
 	cents := fmt.Sprintf("%v", amount)
 	size := len(cents)
+	if size <= 2 {
+		return cents
+	}
 	return fmt.Sprintf("%v.%v", cents[:size-2], cents[size-2:])
 }
 
@@ -148,7 +151,7 @@ func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 	return nil
 }
 
-func (w *Wallet) GetTransactions(after time.Time) ([]*Transaction, error) {
+func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 	var allTxs []*Transaction
 	var filteredTxs []*Transaction
 
@@ -159,11 +162,16 @@ func (w *Wallet) GetTransactions(after time.Time) ([]*Transaction, error) {
 
 	json.Unmarshal(b, &allTxs)
 
-	for _, tx := range allTxs {
-		if ((tx.Recipient == w.Address) && tx.Timestamp.After(after)){
+	for index, tx := range allTxs {
+		if index > 200 {
+			fmt.Printf(
+				"===\n\ntx.Recipient: %s\nw.Address: %s\nequal:%v\ntx.Timestamp:%v\nCutoff:%v\nAfter:%v\n",
+				tx.Recipient, w.Address, (tx.Recipient == w.Address), tx.Timestamp, cutoff, tx.Timestamp.After(cutoff))
+		}
+		if ((tx.Recipient == w.Address) && tx.Timestamp.After(cutoff)){
 			fmt.Printf("New tx seen: %v\n", tx)
 			amount, _ := strconv.ParseInt(tx.Amount, 10, 32)
-			tx.Amount = fmt.Sprintf("%d", amount * 100)
+			tx.Amount = fmt.Sprintf("%d", amount)
 			filteredTxs = append(filteredTxs, tx)
 		}
 	}

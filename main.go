@@ -37,11 +37,10 @@ func main() {
 	cli := &CLI{}
 	amount, recipients := cli.Parse()
 	source := wallet.CreateAddresses(1)[0]
-
 	fmt.Printf("Send %d Jobcoins to tumbler address: %s\n", amount, source)
 
 	fee := 2
-	batch := wallet.NewBatch(amount, fee, source, recipients)
-	m := wallet.NewMixer([]*wallet.Batch{batch})
-	m.Run()
+	batch := wallet.NewBatch(amount * 100, fee * 100, source, recipients)
+	mixer := wallet.NewMixer([]*wallet.Batch{batch})
+	mixer.Run()
 }

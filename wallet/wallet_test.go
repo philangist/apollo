@@ -10,11 +10,11 @@ import (
 func TestCreateWallet(t *testing.T) {
 	fmt.Println("Running TestCreateWallet...")
 
-	j := NewWallet("Alice")
+	w := NewWallet("Alice")
 	expected := Address("Alice")
 
-	if j.Address != expected {
-		t.Errorf("Wallet was not created with expected address 'Alice'. Received '%s' instead", j.Address)
+	if w.Address != expected {
+		t.Errorf("Wallet was not created with expected address 'Alice'. Received '%s' instead", w.Address)
 	}
 }
 
@@ -42,10 +42,27 @@ func TestWalletSendTransaction(t *testing.T) {
 			}
 		} else {
 			if err == nil {
-				t.Errorf("Request to send amount '%d' to recipient '%s' was unexpectedly successful", c.amount, c.recipient)
+				t.Errorf(
+					"Request to send amount '%d' to recipient '%s' was unexpectedly successful", c.amount, c.recipient)
 			}
 		}
 	}
+}
+
+func TestApiClientJSONGetRequest(t *testing.T){
+	fmt.Println("Running TestApiClientJSONGetRequest...")
+
+	apiClient := NewApiClient()
+	fmt.Println(apiClient)
+	// test get with valid and invalid url
+}
+
+func TestApiClientJSONPostRequest(t *testing.T){
+	fmt.Println("Running TestApiClientJSONPostRequest...")
+
+	apiClient := NewApiClient()
+	fmt.Println(apiClient)
+	// test get with valid and invalid url
 }
 
 func TestBatchTumble(t *testing.T) {

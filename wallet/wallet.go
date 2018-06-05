@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -18,6 +19,10 @@ var (
 )
 
 type Address string
+
+func (a Address) HashString(input string) string {
+	return ""
+}
 
 func CreateAddresses(total int) (addresses []Address) {
 	// hash this shieeeeet
@@ -35,65 +40,8 @@ func CreateAddresses(total int) (addresses []Address) {
 	return addresses
 }
 
-type Transaction struct {
-	Timestamp time.Time `json:"timestamp"`
-	Source    Address   `json:"fromAddress"`
-	Recipient Address   `json:"toAddress"`
-	Amount    string    `json:"amount"`
-}
-
-type Wallet struct {
-	client  *ApiClient
-	Address Address
-}
-
-func NewWallet(address string) *Wallet {
-	return &Wallet{
-		NewApiClient(), Address(address),
-	}
-}
-
-func (w *Wallet) SendTransaction(recipient Address, amount int) error {
-	fmt.Printf("Sending amount '%d' to recipient '%s'\n", amount, recipient)
-	if amount <= 0 {
-		return fmt.Errorf("amount should be a positive integer value")
-	}
-
-	tx := Transaction{time.Now(), w.Address, recipient, fmt.Sprintf("%d", amount)}
-	serializedTx, err := json.Marshal(tx)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	txBuffer := bytes.NewBuffer(serializedTx)
-	err = w.client.JSONPostRequest(SEND_TXN_URL, txBuffer)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	return nil
-}
-
-func (w *Wallet) GetTransactions(after time.Time) ([]*Transaction, error) {
-	var allTxs []*Transaction
-	var filteredTxs []*Transaction
-
-	b, err := w.client.JSONGetRequest(FETCH_TXNS_URL)
-	if err != nil {
-		return allTxs, err
-	}
-
-	json.Unmarshal(b, &allTxs)
-
-
-	for _, tx := range allTxs {
-		if ((tx.Recipient == w.Address) && tx.Timestamp.After(after)){
-			filteredTxs = append(filteredTxs, tx)
-		}
-	}
-
-	return filteredTxs, nil
-}
+// func JobcoinToInt
+// func IntToJobcoin
 
 type ApiClient struct {
 	*http.Client
@@ -101,6 +49,30 @@ type ApiClient struct {
 
 func NewApiClient() *ApiClient {
 	return &ApiClient{&http.Client{}}
+}
+
+
+func (j *ApiClient) JSONGetRequest(url string) ([]byte, error) {
+	var byteStream []byte
+
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return byteStream, err
+	}
+
+	response, err := j.Do(request)
+	if err != nil {
+		return byteStream, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return byteStream, fmt.Errorf(
+			"Url: '%s' returned unexpected status code %d", url, response.StatusCode)
+	}
+	reader := response.Body
+	defer reader.Close()
+
+	return ioutil.ReadAll(reader)
 }
 
 func (j *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
@@ -128,25 +100,73 @@ func (j *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
 	return nil
 }
 
-func (j *ApiClient) JSONGetRequest(url string) ([]byte, error) {
-	var byteStream []byte
+type Transaction struct {
+	Timestamp time.Time `json:"timestamp"`
+	Source    Address   `json:"fromAddress"`
+	Recipient Address   `json:"toAddress"`
+	Amount    string    `json:"amount"`
+}
 
-	request, err := http.NewRequest("GET", url, nil)
+type Wallet struct {
+	client  *ApiClient
+	Address Address
+}
+
+func NewWallet(address string) *Wallet {
+	return &Wallet{
+		NewApiClient(), Address(address),
+	}
+}
+
+func (w *Wallet) convertAmount(amount int) string {
+	fmt.Printf("ConvertAmount(%d)\n", amount)
+	cents := fmt.Sprintf("%v", amount)
+	size := len(cents)
+	return fmt.Sprintf("%v.%v", cents[:size-2], cents[size-2:])
+}
+
+func (w *Wallet) SendTransaction(recipient Address, amount int) error {
+	if amount <= 0 {
+		return fmt.Errorf("amount should be a positive integer value")
+	}
+
+	convertedAmount := w.convertAmount(amount)
+	fmt.Printf("Sending amount '%s' to recipient '%s'\n", convertedAmount, recipient)
+
+	tx := Transaction{time.Now(), w.Address, recipient, convertedAmount}
+	serializedTx, err := json.Marshal(tx)
 	if err != nil {
-		return byteStream, err
+		log.Panic(err)
 	}
 
-	response, err := j.Do(request)
+	txBuffer := bytes.NewBuffer(serializedTx)
+	err = w.client.JSONPostRequest(SEND_TXN_URL, txBuffer)
 	if err != nil {
-		return byteStream, err
+		log.Panic(err)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		return byteStream, fmt.Errorf(
-			"Url: '%s' returned unexpected status code %d", url, response.StatusCode)
-	}
-	reader := response.Body
-	defer reader.Close()
+	return nil
+}
 
-	return ioutil.ReadAll(reader)
+func (w *Wallet) GetTransactions(after time.Time) ([]*Transaction, error) {
+	var allTxs []*Transaction
+	var filteredTxs []*Transaction
+
+	b, err := w.client.JSONGetRequest(FETCH_TXNS_URL)
+	if err != nil {
+		return allTxs, err
+	}
+
+	json.Unmarshal(b, &allTxs)
+
+	for _, tx := range allTxs {
+		if ((tx.Recipient == w.Address) && tx.Timestamp.After(after)){
+			fmt.Printf("New tx seen: %v\n", tx)
+			amount, _ := strconv.ParseInt(tx.Amount, 10, 32)
+			tx.Amount = fmt.Sprintf("%d", amount * 100)
+			filteredTxs = append(filteredTxs, tx)
+		}
+	}
+
+	return filteredTxs, nil
 }

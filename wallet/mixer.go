@@ -10,6 +10,7 @@ import (
 
 var pool = NewWallet("Pool")
 
+// deal in cents
 type Batch struct {
 	Amount     int
 	Fee        int
@@ -18,6 +19,7 @@ type Batch struct {
 	StartTime  time.Time
 }
 
+// add timeout
 func NewBatch(amount, fee int, source Address, recipients []Address) *Batch {
 	return &Batch{
 		amount,
@@ -28,7 +30,7 @@ func NewBatch(amount, fee int, source Address, recipients []Address) *Batch {
 	}
 }
 
-func (b *Batch) generatePayouts(amount, totalRecipients int) []int {
+func (b *Batch) GeneratePayouts(amount, totalRecipients int) []int {
 	rand.Seed(time.Now().UnixNano())
 	payouts := []int{}
 
@@ -42,7 +44,7 @@ func (b *Batch) generatePayouts(amount, totalRecipients int) []int {
 				payouts = append(payouts, amount)
 				break
 			}
-			portion := rand.Intn(upperBound) + 1 //rand.Intn returns [0, n) and we never want a zero value
+			portion := rand.Intn(upperBound) + 1
 			payouts = append(payouts, portion)
 			amount -= portion
 		}
@@ -52,10 +54,10 @@ func (b *Batch) generatePayouts(amount, totalRecipients int) []int {
 }
 
 func (b *Batch) Tumble() (err error) {
-	amount := b.Amount - b.Fee //keep b.Fee amount in the pool
+	amount := b.Amount - b.Fee //pay b.Fee amount to the pool
 	totalRecipients := len(b.Recipients)
 
-	payouts := b.generatePayouts(amount, totalRecipients)
+	payouts := b.GeneratePayouts(amount, totalRecipients)
 
 	rand.Seed(time.Now().UnixNano())
 	for index, payout := range payouts {
@@ -75,6 +77,7 @@ func (b *Batch) PollTransactions() {
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source)
 
 	w := &Wallet{NewApiClient(), b.Source}
+	sum := 0
 	seen := false
 	timeout := time.Now().Add(time.Duration(30) * time.Second)
 
@@ -87,15 +90,20 @@ func (b *Batch) PollTransactions() {
 		for _, txn := range txns {
 			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
 			amount, _ := strconv.ParseInt(txn.Amount, 10, 32)
-			w.SendTransaction(pool.Address, int(amount))
+			w.SendTransaction(pool.Address, int(amount) * 100)
+			sum += int(amount) * 100
+			fmt.Printf("amount is %d\n", int(amount) * 100)
 			seen = true
 		}
-		if seen == false {
+		// if sum < b.Amount {
+		if seen == true {
+			fmt.Printf("sum is %d\n", sum)
+			b.Tumble()
+			return
+		}else {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		b.Tumble()
-		return
 	}
 }
 

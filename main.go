@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/philangist/apollo/wallet"
+	"github.com/philangist/apollo/mixer"
 )
 
 type CLI struct {}
@@ -16,7 +16,7 @@ func (cli *CLI) Usage() {
 	fmt.Println("   --amount AMOUNT --destination \"ADDRESS1 ADDRESS2 ...ADDRESSN\" - Send AMOUNT of Jobcoins to ADDRESSES that you own")
 }
 
-func (cli *CLI) Parse() (int, []wallet.Address) {
+func (cli *CLI) Parse() (int, []mixer.Address) {
 	amount := flag.Int("amount", 0, "amount of Jobcoin to tumble")
 	destination := flag.String("destination", "", "amount of Jobcoin to tumble")
 
@@ -26,9 +26,9 @@ func (cli *CLI) Parse() (int, []wallet.Address) {
 		os.Exit(1)
 	}
 
-	var addresses []wallet.Address
+	var addresses []mixer.Address
 	for _, address := range strings.Split(*destination, " ") {
-		addresses = append(addresses, wallet.Address(address))
+		addresses = append(addresses, mixer.Address(address))
 	}
 	return *amount, addresses
 }
@@ -36,13 +36,13 @@ func (cli *CLI) Parse() (int, []wallet.Address) {
 func main() {
 	cli := &CLI{}
 	amount, recipients := cli.Parse()
-	source := wallet.CreateAddresses(1)[0]
+	source := mixer.CreateAddresses(1)[0]
 	fmt.Printf("Send %d Jobcoins to tumbler address: %s\n", amount, source)
 
 	amount = amount * 100
 	fee := int(float32(amount) * float32(0.2))
 
-	batch := wallet.NewBatch(amount, fee, source, recipients)
-	mixer := wallet.NewMixer([]*wallet.Batch{batch})
+	batch := mixer.NewBatch(amount, fee, source, recipients)
+	mixer := mixer.NewMixer([]*mixer.Batch{batch})
 	mixer.Run()
 }

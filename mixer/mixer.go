@@ -1,4 +1,4 @@
-package wallet
+package mixer
 
 import (
 	"fmt"

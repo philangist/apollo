@@ -1,4 +1,4 @@
-package wallet
+package mixer
 
 import (
 	"fmt"
@@ -15,6 +15,13 @@ func TestCreateWallet(t *testing.T) {
 
 	if w.Address != expected {
 		t.Errorf("Wallet was not created with expected address 'Alice'. Received '%s' instead", w.Address)
+	}
+}
+
+func TestWalletGeneratePayouts()(t *testing.T) {
+	fmt.Println("Running TestWalletGeneratePayouts...")
+	if 1 != 1 {
+		t.Errorf("1 is not equal to 1! What have you done?")
 	}
 }
 
@@ -62,7 +69,7 @@ func TestApiClientJSONPostRequest(t *testing.T){
 
 	apiClient := NewApiClient()
 	fmt.Println(apiClient)
-	// test get with valid and invalid url
+	// test post with valid and invalid url
 }
 
 func TestBatchTumble(t *testing.T) {

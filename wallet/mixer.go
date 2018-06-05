@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -75,33 +76,36 @@ func (b *Batch) Tumble() (err error) {
 
 func (b *Batch) PollTransactions() {
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source)
+	fmt.Printf("b.Amount is %v\n", b.Amount)
 
 	w := &Wallet{NewApiClient(), b.Source}
 	sum := 0
-	seen := false
-	timeout := time.Now().Add(time.Duration(30) * time.Second)
+	cutoff := b.StartTime // look for new transactions after cutoff
+	timeout := cutoff.Add(time.Duration(30) * time.Second) // exit if no new transactions are seen by timeout
 
 	for {
 		if (timeout.Before(time.Now())) {
 			return
 		}
 
-		txns, _ := w.GetTransactions(b.StartTime)
+		txns, err := w.GetTransactions(cutoff)
+		if err != nil {
+			log.Panic(err)
+		}
+
 		for _, txn := range txns {
 			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
-			amount, _ := strconv.ParseInt(txn.Amount, 10, 32)
-			amount = amount * 100
+			amount, _ := strconv.ParseInt(txn.Amount, 10, 32) // validity of amount is guaranteed since w.GetTransactions() did not panic
 			w.SendTransaction(pool.Address, int(amount))
 			sum += int(amount)
 			fmt.Printf("amount is %d\n", int(amount))
-			seen = true
 		}
-		// if sum < b.Amount {
-		if seen == true {
+		if sum >= b.Amount {
 			fmt.Printf("sum is %d\n", sum)
 			b.Tumble()
-			return
+			break
 		}else {
+			cutoff = time.Now()
 			time.Sleep(5 * time.Second)
 			continue
 		}

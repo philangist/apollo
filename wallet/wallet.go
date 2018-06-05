@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -55,7 +56,11 @@ func NewApiClient() *ApiClient {
 func (a *ApiClient) JSONGetRequest(url string) ([]byte, error) {
 	var byteStream []byte
 
-	request, err := http.NewRequest("GET", url, nil)
+	request, err := http.NewRequest(
+		"GET",
+		url,
+		nil,
+	)
 	if err != nil {
 		return byteStream, err
 	}
@@ -118,8 +123,7 @@ func NewWallet(address string) *Wallet {
 	}
 }
 
-func (w *Wallet) convertAmount(amount int) string {
-	fmt.Printf("ConvertAmount(%d)\n", amount)
+func (w *Wallet) IntToJobcoin(amount int) string {
 	cents := fmt.Sprintf("%v", amount)
 	size := len(cents)
 	if size <= 2 {
@@ -128,12 +132,18 @@ func (w *Wallet) convertAmount(amount int) string {
 	return fmt.Sprintf("%v.%v", cents[:size-2], cents[size-2:])
 }
 
+func (w *Wallet) JobcoinToInt(jobcoin string) (int, error) {
+	cents := strings.Replace(jobcoin, ".", "", 1)
+	value, err := strconv.ParseInt(cents, 10, 32)
+	return int(value), err
+}
+
 func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 	if amount <= 0 {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
-	convertedAmount := w.convertAmount(amount)
+	convertedAmount := w.IntToJobcoin(amount)
 	fmt.Printf("Sending amount '%s' to recipient '%s'\n", convertedAmount, recipient)
 
 	tx := Transaction{time.Now(), w.Address, recipient, convertedAmount}
@@ -152,24 +162,28 @@ func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 }
 
 func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
-	var allTxs []*Transaction
-	var filteredTxs []*Transaction
+	var allTxns []*Transaction
+	var filteredTxns []*Transaction
 
 	b, err := w.client.JSONGetRequest(FETCH_TXNS_URL)
 	if err != nil {
-		return allTxs, err
+		return allTxns, err
 	}
 
-	json.Unmarshal(b, &allTxs)
+	json.Unmarshal(b, &allTxns)
 
-	for _, tx := range allTxs {
-		if ((tx.Recipient == w.Address) && tx.Timestamp.After(cutoff)){
-			fmt.Printf("New tx seen: %v\n", tx)
-			amount, _ := strconv.ParseInt(tx.Amount, 10, 32)
-			tx.Amount = fmt.Sprintf("%d", amount)
-			filteredTxs = append(filteredTxs, tx)
+	for _, txn := range allTxns {
+		if ((txn.Recipient == w.Address) && txn.Timestamp.After(cutoff)){
+			fmt.Printf("New txn seen: %v\n", txn)
+			amount, err := w.JobcoinToInt(txn.Amount)
+			if err != nil {
+				return filteredTxns, err
+			}
+
+			txn.Amount = fmt.Sprintf("%d", amount)
+			filteredTxns = append(filteredTxns, txn)
 		}
 	}
 
-	return filteredTxs, nil
+	return filteredTxns, nil
 }

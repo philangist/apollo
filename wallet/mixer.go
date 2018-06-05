@@ -35,8 +35,8 @@ func (b *Batch) GeneratePayouts(amount, totalRecipients int) []int {
 	rand.Seed(time.Now().UnixNano())
 	payouts := []int{}
 
-	for index := 0; index < totalRecipients; index++ {
-		if (index + 1) == totalRecipients {
+	for i := 0; i < totalRecipients; i++ {
+		if (i + 1) == totalRecipients {
 			payouts = append(payouts, amount)
 		} else {
 			// comment explaining this tomfoolery
@@ -61,11 +61,11 @@ func (b *Batch) Tumble() (err error) {
 	payouts := b.GeneratePayouts(amount, totalRecipients)
 
 	rand.Seed(time.Now().UnixNano())
-	for index, payout := range payouts {
-		sleep := time.Duration(rand.Intn(10)) * time.Second
-		time.Sleep(sleep)
+	for i, payout := range payouts {
+		// sleep := time.Duration(rand.Intn(10)) * time.Second
+		// time.Sleep(sleep)
 
-		err = pool.SendTransaction(b.Recipients[index], payout)
+		err = pool.SendTransaction(b.Recipients[i], payout)
 		if err != nil {
 			return err
 		}
@@ -81,7 +81,7 @@ func (b *Batch) PollTransactions() {
 	w := &Wallet{NewApiClient(), b.Source}
 	sum := 0
 	cutoff := b.StartTime // look for new transactions after cutoff
-	timeout := cutoff.Add(time.Duration(30) * time.Second) // exit if no new transactions are seen by timeout
+	timeout := cutoff.Add(time.Duration(1) * time.Second) // exit if no new transactions are seen by timeout
 
 	for {
 		if (timeout.Before(time.Now())) {
@@ -106,7 +106,7 @@ func (b *Batch) PollTransactions() {
 			break
 		}else {
 			cutoff = time.Now()
-			time.Sleep(5 * time.Second)
+			// time.Sleep(1 * time.Second)
 			continue
 		}
 	}

@@ -28,8 +28,7 @@ func (a Address) HashString(input string) string {
 func CreateAddresses(total int) (addresses []Address) {
 	// hash this shieeeeet
 	rand.Seed(time.Now().UnixNano())
-	nonce := rand.Intn(4294967296)
-	prefix := fmt.Sprintf("%d-%d", time.Now().Unix(), nonce)
+	prefix := fmt.Sprintf("%d-%d", time.Now().Unix(), rand.Intn(4294967296))
 
 	for i:=0; i < total; i++ {
 		addresses = append(

@@ -123,7 +123,7 @@ func (w *Wallet) convertAmount(amount int) string {
 	cents := fmt.Sprintf("%v", amount)
 	size := len(cents)
 	if size <= 2 {
-		return cents
+		return fmt.Sprintf("%v", float32(amount)/float32(100))
 	}
 	return fmt.Sprintf("%v.%v", cents[:size-2], cents[size-2:])
 }
@@ -162,12 +162,7 @@ func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 
 	json.Unmarshal(b, &allTxs)
 
-	for index, tx := range allTxs {
-		if index > 200 {
-			fmt.Printf(
-				"===\n\ntx.Recipient: %s\nw.Address: %s\nequal:%v\ntx.Timestamp:%v\nCutoff:%v\nAfter:%v\n",
-				tx.Recipient, w.Address, (tx.Recipient == w.Address), tx.Timestamp, cutoff, tx.Timestamp.After(cutoff))
-		}
+	for _, tx := range allTxs {
 		if ((tx.Recipient == w.Address) && tx.Timestamp.After(cutoff)){
 			fmt.Printf("New tx seen: %v\n", tx)
 			amount, _ := strconv.ParseInt(tx.Amount, 10, 32)

@@ -11,23 +11,35 @@ import (
 
 var pool = NewWallet("Pool")
 
+type DelayGenerator func(int) int
+
+func RandomDelay(maxDelay int) int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(maxDelay)
+}
+
 // deal in cents
 type Batch struct {
 	Amount     int
 	Fee        int
-	Source     Address
+	Source     *Wallet
 	Recipients []Address
-	StartTime  time.Time
+	StartTime  time.Time // probably rename StartTime
+	PollInterval time.Duration
+	DelayGenerator DelayGenerator // rename this also
 }
 
 // add timeout
-func NewBatch(amount, fee int, source Address, recipients []Address) *Batch {
+func NewBatch(amount, fee int, source *Wallet, recipients []Address) *Batch {
+
 	return &Batch{
 		amount,
 		fee,
 		source,
 		recipients,
 		time.Now(),
+		time.Duration(1),
+		RandomDelay,
 	}
 }
 
@@ -39,15 +51,19 @@ func (b *Batch) GeneratePayouts(amount, totalRecipients int) []int {
 		if (i + 1) == totalRecipients {
 			payouts = append(payouts, amount)
 		} else {
-			// comment explaining this tomfoolery
+			// successively take a random integer payout between (1, n/2 + 1) from amount
+			// and update amount with the new value
 			upperBound := amount / 2
 			if upperBound == 0 {
+				//if upperBound == 0 that imples amount was 1, so we can just add that
+				// payout value and early exit. Note that this implies that
+				// not every recipient account necessarily receives a payout
 				payouts = append(payouts, amount)
 				break
 			}
-			portion := rand.Intn(upperBound) + 1
-			payouts = append(payouts, portion)
-			amount -= portion
+			payout := rand.Intn(upperBound) + 1
+			payouts = append(payouts, payout)
+			amount -= payout
 		}
 	}
 
@@ -60,10 +76,9 @@ func (b *Batch) Tumble() (err error) {
 
 	payouts := b.GeneratePayouts(amount, totalRecipients)
 
-	rand.Seed(time.Now().UnixNano())
 	for i, payout := range payouts {
-		// sleep := time.Duration(rand.Intn(10)) * time.Second
-		// time.Sleep(sleep)
+		delay := time.Duration(b.DelayGenerator(10))
+		time.Sleep(delay * time.Second)
 
 		err = pool.SendTransaction(b.Recipients[i], payout)
 		if err != nil {
@@ -78,7 +93,6 @@ func (b *Batch) PollTransactions() {
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source)
 	fmt.Printf("b.Amount is %v\n", b.Amount)
 
-	w := NewWallet(b.Source)
 	sum := 0
 	cutoff := b.StartTime                                 // look for new transactions after cutoff
 	timeout := cutoff.Add(time.Duration(1) * time.Second) // exit if no new transactions are seen by timeout
@@ -88,15 +102,15 @@ func (b *Batch) PollTransactions() {
 			return
 		}
 
-		txns, err := w.GetTransactions(cutoff)
+		txns, err := b.Source.GetTransactions(cutoff)
 		if err != nil {
 			log.Panic(err)
 		}
 
 		for _, txn := range txns {
 			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
-			amount, _ := strconv.ParseInt(txn.Amount, 10, 32) // validity of amount is guaranteed since w.GetTransactions() did not panic
-			w.SendTransaction(pool.Address, int(amount))
+			amount, _ := strconv.ParseInt(txn.Amount, 10, 32) // validity of amount is guaranteed since b.Source.GetTransactions() did not panic
+			b.Source.SendTransaction(pool.Address, int(amount))
 			sum += int(amount)
 			fmt.Printf("amount is %d\n", int(amount))
 		}
@@ -106,7 +120,7 @@ func (b *Batch) PollTransactions() {
 			break
 		} else {
 			cutoff = time.Now()
-			// time.Sleep(1 * time.Second)
+			time.Sleep(b.PollInterval * time.Second)
 			continue
 		}
 	}

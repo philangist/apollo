@@ -22,7 +22,6 @@ var (
 type Address string
 
 func CreateAddresses(total int) (addresses []Address) {
-	// hash this shieeeeet
 	rand.Seed(time.Now().UnixNano())
 	prefix := fmt.Sprintf("%d-%d", time.Now().Unix(), rand.Intn(4294967296))
 
@@ -121,9 +120,7 @@ func NewWallet(address Address) *Wallet {
 	}
 }
 
-// these functions don't need to live on Wallet necessarily
-
-func (w *Wallet) IntToJobcoin(amount int) string {
+func IntToJobcoin(amount int) string {
 	cents := fmt.Sprintf("%v", amount)
 	size := len(cents)
 	if size <= 2 {
@@ -132,9 +129,18 @@ func (w *Wallet) IntToJobcoin(amount int) string {
 	return fmt.Sprintf("%v.%v", cents[:size-2], cents[size-2:])
 }
 
-func (w *Wallet) JobcoinToInt(jobcoin string) (int, error) {
+func JobcoinToInt(jobcoin string) (int, error) {
+	fmt.Println(jobcoin)
 	cents := strings.Replace(jobcoin, ".", "", 1)
 	value, err := strconv.ParseInt(cents, 10, 32)
+	if err != nil {
+		return int(value), err
+	}
+	// make sure values like '0.1' are returned as 10, not 1
+	if (len(cents) == 2) && (string(cents[0]) == "0") {
+		return int(value) * 10, err
+	}
+
 	return int(value), err
 }
 
@@ -143,17 +149,20 @@ func (w *Wallet) SendTransaction(recipient Address, amount int) error {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
-	convertedAmount := w.IntToJobcoin(amount)
+	convertedAmount := IntToJobcoin(amount)
 	fmt.Printf("Sending amount '%s' to recipient '%s'\n", convertedAmount, recipient)
+	if 1 == 1{
+		return nil
+	}
 
-	tx := Transaction{time.Now(), w.Address, recipient, convertedAmount}
-	serializedTx, err := json.Marshal(tx)
+	txn := Transaction{time.Now(), w.Address, recipient, convertedAmount}
+	serializedTxn, err := json.Marshal(txn)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	txBuffer := bytes.NewBuffer(serializedTx)
-	err = w.client.JSONPostRequest(SEND_TXN_URL, txBuffer)
+	txnBuffer := bytes.NewBuffer(serializedTxn)
+	err = w.client.JSONPostRequest(SEND_TXN_URL, txnBuffer)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -170,11 +179,15 @@ func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 		return allTxns, err
 	}
 
-	json.Unmarshal(b, &allTxns)
+	err = json.Unmarshal(b, &allTxns)
+	if err != nil {
+		return allTxns, err
+	}
+
 	for _, txn := range allTxns {
 		if (txn.Recipient == w.Address) && txn.Timestamp.After(cutoff) {
 			fmt.Printf("New txn seen: %v\n", txn)
-			amount, err := w.JobcoinToInt(txn.Amount)
+			amount, err := JobcoinToInt(txn.Amount)
 			if err != nil {
 				return filteredTxns, err
 			}

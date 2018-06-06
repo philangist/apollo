@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var pool = NewWallet("Pool")
+var pool = NewWallet(Address("Pool"))
 
 // deal in cents
 type Batch struct {
@@ -78,7 +78,7 @@ func (b *Batch) PollTransactions() {
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source)
 	fmt.Printf("b.Amount is %v\n", b.Amount)
 
-	w := &Wallet{NewApiClient(), b.Source}
+	w := NewWallet(b.Source)
 	sum := 0
 	cutoff := b.StartTime // look for new transactions after cutoff
 	timeout := cutoff.Add(time.Duration(1) * time.Second) // exit if no new transactions are seen by timeout

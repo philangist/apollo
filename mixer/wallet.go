@@ -116,9 +116,9 @@ type Wallet struct {
 	Address Address
 }
 
-func NewWallet(address string) *Wallet {
+func NewWallet(address Address) *Wallet {
 	return &Wallet{
-		NewApiClient(), Address(address),
+		NewApiClient(), address,
 	}
 }
 

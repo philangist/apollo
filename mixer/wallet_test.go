@@ -7,24 +7,6 @@ import (
 	"time"
 )
 
-func TestCreateWallet(t *testing.T) {
-	fmt.Println("Running TestCreateWallet...")
-
-	w := NewWallet("Alice")
-	expected := Address("Alice")
-
-	if w.Address != expected {
-		t.Errorf("Wallet was not created with expected address 'Alice'. Received '%s' instead", w.Address)
-	}
-}
-
-func TestWalletGeneratePayouts()(t *testing.T) {
-	fmt.Println("Running TestWalletGeneratePayouts...")
-	if 1 != 1 {
-		t.Errorf("1 is not equal to 1! What have you done?")
-	}
-}
-
 func TestWalletSendTransaction(t *testing.T) {
 	fmt.Println("Running TestWalletSendTransaction...")
 
@@ -61,6 +43,8 @@ func TestApiClientJSONGetRequest(t *testing.T){
 
 	apiClient := NewApiClient()
 	fmt.Println(apiClient)
+
+	apiClient.JSONGetRequest("")
 	// test get with valid and invalid url
 }
 
@@ -70,6 +54,34 @@ func TestApiClientJSONPostRequest(t *testing.T){
 	apiClient := NewApiClient()
 	fmt.Println(apiClient)
 	// test post with valid and invalid url
+}
+
+func TestBatchGeneratePayouts(t *testing.T) {
+	fmt.Println("Running TestBatchGeneratePayouts...")
+
+	amount := 120
+	fee := 20
+
+	source := Address("Address-1")
+	recipients := []Address{
+			Address("Address-1"), Address("Address-2"),
+		}
+
+	b := NewBatch(amount, fee, source, recipients)
+
+	expected := amount - fee
+	actual := 0
+	payouts := b.GeneratePayouts(expected, len(recipients))
+
+	for _, value := range payouts {
+		actual += value
+	}
+
+	if actual != expected {
+		t.Errorf(
+			"Expected Batch.GeneratePayouts() to return a list of values that sum up to %d\nReceived %v which sums up to %d instead'",
+			expected, payouts, actual)
+	}
 }
 
 func TestBatchTumble(t *testing.T) {

@@ -38,7 +38,6 @@ func main() {
 	amount, recipients := cli.Parse()
 	source := mixer.CreateAddresses(1)[0]
 	fmt.Printf("Send %d Jobcoins to tumbler address: %s\n", amount, source)
-
 	amount = amount * 100
 	fee := int(float32(amount) * float32(0.2))
 

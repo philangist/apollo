@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	// "math/rand"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,11 +21,6 @@ var (
 
 type Address string
 
-/*
-func (a Address) HashString(input string) string {
-	return ""
-}
-
 func CreateAddresses(total int) (addresses []Address) {
 	// hash this shieeeeet
 	rand.Seed(time.Now().UnixNano())
@@ -34,13 +29,14 @@ func CreateAddresses(total int) (addresses []Address) {
 	for i:=0; i < total; i++ {
 		addresses = append(
 			addresses,
-			Address(fmt.Sprintf("%s-%d", prefix, i)),
+			Address(
+				HashString(fmt.Sprintf("%s-%d", prefix, i)),
+			),
 		)
 	}
 
 	return addresses
 }
-*/
 
 type Client interface {
 	JSONGetRequest(url string) ([]byte, error)

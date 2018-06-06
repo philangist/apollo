@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 )
@@ -188,6 +187,20 @@ func TestApiClientJSONGetInvalidRequest(t *testing.T){
 	}
 }
 
+func TestApiClientJSONGetInvalidURL(t *testing.T){
+	fmt.Println("Running TestApiClientJSONGetInvalidRequest...")
+
+	handler := mockHandler(0, nil)
+	tServer := httptest.NewServer(http.HandlerFunc(handler))
+	defer tServer.Close()
+
+	apiClient := NewApiClient()
+	_, err := apiClient.JSONGetRequest("INVALID-URL")
+	if err == nil {
+		t.Errorf("ApiClient.JSONGetRequest was unexpectedly successful with an invalid url")
+	}
+}
+
 func TestApiClientJSONPostRequest(t *testing.T){
 	fmt.Println("Running TestApiClientJSONPostRequest...")
 
@@ -213,6 +226,21 @@ func TestApiClientJSONPostInvalidRequest(t *testing.T){
 	apiClient := NewApiClient()
 	payload := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
 	err := apiClient.JSONPostRequest(tServer.URL, payload)
+	if err == nil {
+		t.Errorf("ApiClient.JSONPostRequest was unexpectedly successful")
+	}
+}
+
+func TestApiClientJSONPostInvalidURL(t *testing.T){
+	fmt.Println("Running TestApiClientJSONPostRequest...")
+
+	handler := mockHandler(0, nil)
+	tServer := httptest.NewServer(http.HandlerFunc(handler))
+	defer tServer.Close()
+
+	apiClient := NewApiClient()
+	payload := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
+	err := apiClient.JSONPostRequest("INVALID-URL", payload)
 	if err == nil {
 		t.Errorf("ApiClient.JSONPostRequest was unexpectedly successful")
 	}
@@ -277,6 +305,6 @@ func TestMixerRun(t *testing.T) {
 		time.Now(),
 	}
 	batches := []*Batch{batch} //, batch, batch}
-	mixer := &Mixer{batches, &sync.WaitGroup{}}
+	mixer := NewMixer(batches)
 	mixer.Run()
 }

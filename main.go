@@ -9,7 +9,7 @@ import (
 	"github.com/philangist/apollo/mixer"
 )
 
-type CLI struct {}
+type CLI struct{}
 
 func (cli *CLI) Usage() {
 	fmt.Println("Usage:")
@@ -36,8 +36,7 @@ func (cli *CLI) Parse() (int, []mixer.Address) {
 func main() {
 	cli := &CLI{}
 	amount, recipients := cli.Parse()
-	//source := mixer.CreateAddresses(1)[0]
-	source := mixer.Address("Address-1")
+	source := mixer.CreateAddresses(1)[0]
 	fmt.Printf("Send %d Jobcoins to tumbler address: %s\n", amount, source)
 
 	amount = amount * 100

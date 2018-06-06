@@ -14,7 +14,7 @@ import (
 
 const (
 	TIMEOUT          = time.Second * 3
-	HTTP_OK     = http.StatusOK
+	HTTP_OK          = http.StatusOK
 	HTTP_UNAVAILABLE = http.StatusServiceUnavailable
 )
 
@@ -35,11 +35,11 @@ func mockHandler(status int, entity interface{}) func(http.ResponseWriter, *http
 }
 
 type testClient struct {
-	GetResponse func(url string) ([]byte, error)
-	PostResponse func(url string, payload *bytes.Buffer) (error)
+	GetResponse  func(url string) ([]byte, error)
+	PostResponse func(url string, payload *bytes.Buffer) error
 }
 
-func (t *testClient) JSONGetRequest(url string) ([]byte, error){
+func (t *testClient) JSONGetRequest(url string) ([]byte, error) {
 	return t.GetResponse(url) // []byte(""), nil
 }
 
@@ -51,7 +51,7 @@ func TestWalletSendTransaction(t *testing.T) {
 	fmt.Println("Running TestWalletSendTransaction...")
 
 	client := &testClient{
-		PostResponse: func(url string, payload *bytes.Buffer) (error) { return nil },
+		PostResponse: func(url string, payload *bytes.Buffer) error { return nil },
 	}
 	j := &Wallet{client, "Alice"}
 	b := Address("Bob")
@@ -123,11 +123,10 @@ func TestWalletGetTransactions(t *testing.T) {
 	// probably a Coin type that can abstract away all this complexity
 	expectedAmount, _ := j.JobcoinToInt(expected.Amount)
 	actualAmount := actual.Amount
-	if !(
-		(fmt.Sprintf("%v", expectedAmount) == actualAmount) &&
+	if !((fmt.Sprintf("%v", expectedAmount) == actualAmount) &&
 		(expected.Timestamp.Equal(actual.Timestamp)) &&
 		(expected.Source == actual.Source) &&
-		(expected.Recipient == actual.Recipient)){
+		(expected.Recipient == actual.Recipient)) {
 		t.Errorf("Returned transactions %q did not match expected transactions %q", returnedTxns, txns)
 	}
 
@@ -145,7 +144,7 @@ func mockTransaction() *Transaction {
 	return expected
 }
 
-func TestApiClientJSONGetRequest(t *testing.T){
+func TestApiClientJSONGetRequest(t *testing.T) {
 	fmt.Println("Running TestApiClientJSONGetRequest...")
 
 	mapping := map[string]string{
@@ -161,12 +160,12 @@ func TestApiClientJSONGetRequest(t *testing.T){
 	if err != nil {
 		t.Errorf("ApiClient.JSONGetRequest returned unexpected error %s", err)
 	}
-	if !reflect.DeepEqual(b, expected){
+	if !reflect.DeepEqual(b, expected) {
 		t.Errorf("ApiClient.JSONGetRequest returned value '%q'\nexpected:'%q'\n", b, expected)
 	}
 }
 
-func TestApiClientJSONGetInvalidRequest(t *testing.T){
+func TestApiClientJSONGetInvalidRequest(t *testing.T) {
 	fmt.Println("Running TestApiClientJSONGetInvalidRequest...")
 
 	mapping := map[string]string{
@@ -182,12 +181,12 @@ func TestApiClientJSONGetInvalidRequest(t *testing.T){
 	if err == nil {
 		t.Errorf("ApiClient.JSONGetRequest was unexpectedly successful")
 	}
-	if fmt.Sprintf("%q", b) != fmt.Sprintf("%q", expected){
+	if fmt.Sprintf("%q", b) != fmt.Sprintf("%q", expected) {
 		t.Errorf("ApiClient.JSONGetRequest returned value '%q'\nexpected:'%q'\n", b, expected)
 	}
 }
 
-func TestApiClientJSONGetInvalidURL(t *testing.T){
+func TestApiClientJSONGetInvalidURL(t *testing.T) {
 	fmt.Println("Running TestApiClientJSONGetInvalidRequest...")
 
 	handler := mockHandler(0, nil)
@@ -201,7 +200,7 @@ func TestApiClientJSONGetInvalidURL(t *testing.T){
 	}
 }
 
-func TestApiClientJSONPostRequest(t *testing.T){
+func TestApiClientJSONPostRequest(t *testing.T) {
 	fmt.Println("Running TestApiClientJSONPostRequest...")
 
 	handler := mockHandler(HTTP_OK, nil)
@@ -216,7 +215,7 @@ func TestApiClientJSONPostRequest(t *testing.T){
 	}
 }
 
-func TestApiClientJSONPostInvalidRequest(t *testing.T){
+func TestApiClientJSONPostInvalidRequest(t *testing.T) {
 	fmt.Println("Running TestApiClientJSONPostRequest...")
 
 	handler := mockHandler(HTTP_UNAVAILABLE, nil)
@@ -231,7 +230,7 @@ func TestApiClientJSONPostInvalidRequest(t *testing.T){
 	}
 }
 
-func TestApiClientJSONPostInvalidURL(t *testing.T){
+func TestApiClientJSONPostInvalidURL(t *testing.T) {
 	fmt.Println("Running TestApiClientJSONPostRequest...")
 
 	handler := mockHandler(0, nil)
@@ -254,8 +253,8 @@ func TestBatchGeneratePayouts(t *testing.T) {
 
 	source := Address("Address-1")
 	recipients := []Address{
-			Address("Address-1"), Address("Address-2"),
-		}
+		Address("Address-1"), Address("Address-2"),
+	}
 
 	b := NewBatch(amount, fee, source, recipients)
 

@@ -16,7 +16,7 @@ import (
 
 var (
 	FETCH_TXNS_URL = "http://jobcoin.gemini.com/victory/api/transactions"
-	SEND_TXN_URL = "http://jobcoin.gemini.com/victory/send"
+	SEND_TXN_URL   = "http://jobcoin.gemini.com/victory/send"
 )
 
 type Address string
@@ -44,7 +44,7 @@ func CreateAddresses(total int) (addresses []Address) {
 
 type Client interface {
 	JSONGetRequest(url string) ([]byte, error)
-	JSONPostRequest(url string, payload *bytes.Buffer) (error)
+	JSONPostRequest(url string, payload *bytes.Buffer) error
 }
 
 type ApiClient struct {
@@ -82,7 +82,7 @@ func (a *ApiClient) JSONGetRequest(url string) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-func (a *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) (error) {
+func (a *ApiClient) JSONPostRequest(url string, payload *bytes.Buffer) error {
 	request, err := http.NewRequest(
 		"POST",
 		url,
@@ -176,7 +176,7 @@ func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 
 	json.Unmarshal(b, &allTxns)
 	for _, txn := range allTxns {
-		if ((txn.Recipient == w.Address) && txn.Timestamp.After(cutoff)){
+		if (txn.Recipient == w.Address) && txn.Timestamp.After(cutoff) {
 			fmt.Printf("New txn seen: %v\n", txn)
 			amount, err := w.JobcoinToInt(txn.Amount)
 			if err != nil {

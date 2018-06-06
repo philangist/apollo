@@ -41,7 +41,7 @@ func (b *Batch) GeneratePayouts(amount, totalRecipients int) []int {
 		} else {
 			// comment explaining this tomfoolery
 			upperBound := amount / 2
-			if  upperBound == 0 {
+			if upperBound == 0 {
 				payouts = append(payouts, amount)
 				break
 			}
@@ -80,11 +80,11 @@ func (b *Batch) PollTransactions() {
 
 	w := NewWallet(b.Source)
 	sum := 0
-	cutoff := b.StartTime // look for new transactions after cutoff
+	cutoff := b.StartTime                                 // look for new transactions after cutoff
 	timeout := cutoff.Add(time.Duration(1) * time.Second) // exit if no new transactions are seen by timeout
 
 	for {
-		if (timeout.Before(time.Now())) {
+		if timeout.Before(time.Now()) {
 			return
 		}
 
@@ -104,7 +104,7 @@ func (b *Batch) PollTransactions() {
 			fmt.Printf("sum is %d\n", sum)
 			b.Tumble()
 			break
-		}else {
+		} else {
 			cutoff = time.Now()
 			// time.Sleep(1 * time.Second)
 			continue

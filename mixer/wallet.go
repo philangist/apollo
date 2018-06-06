@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
+	// "math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +21,7 @@ var (
 
 type Address string
 
+/*
 func (a Address) HashString(input string) string {
 	return ""
 }
@@ -39,9 +40,7 @@ func CreateAddresses(total int) (addresses []Address) {
 
 	return addresses
 }
-
-// func JobcoinToInt
-// func IntToJobcoin
+*/
 
 type ApiClient struct {
 	*http.Client

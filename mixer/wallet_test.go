@@ -1,11 +1,39 @@
 package mixer
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
 )
+
+const (
+	TIMEOUT          = time.Second * 3
+	HTTP_OK     = http.StatusOK
+	HTTP_UNAVAILABLE = http.StatusServiceUnavailable
+)
+
+func mockHandler(status int, entity interface{}) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if status != 0 {
+			w.WriteHeader(status)
+		}
+
+		if entity != nil {
+			serialized, err := json.Marshal(entity)
+			if err != nil {
+				log.Panic(err)
+			}
+			w.Write(serialized)
+		}
+	}
+}
 
 func TestWalletSendTransaction(t *testing.T) {
 	fmt.Println("Running TestWalletSendTransaction...")
@@ -38,22 +66,87 @@ func TestWalletSendTransaction(t *testing.T) {
 	}
 }
 
+func mockTransaction() *Transaction {
+	expected := &Transaction{
+		time.Now(),
+		Address("source"),
+		Address("recipient"),
+		"10",
+	}
+
+	return expected
+}
+
 func TestApiClientJSONGetRequest(t *testing.T){
 	fmt.Println("Running TestApiClientJSONGetRequest...")
 
-	apiClient := NewApiClient()
-	fmt.Println(apiClient)
+	mapping := map[string]string{
+		"foo": "bar",
+	}
+	expected := []byte(`{"foo":"bar"}`)
+	handler := mockHandler(HTTP_OK, mapping)
+	tServer := httptest.NewServer(http.HandlerFunc(handler))
+	defer tServer.Close()
 
-	apiClient.JSONGetRequest("")
-	// test get with valid and invalid url
+	apiClient := NewApiClient()
+	b, err := apiClient.JSONGetRequest(tServer.URL)
+	if err != nil {
+		t.Errorf("ApiClient.JSONGetRequest returned unexpected error %s", err)
+	}
+	if !reflect.DeepEqual(b, expected){
+		t.Errorf("ApiClient.JSONGetRequest returned value '%q'\nexpected:'%q'\n", b, expected)
+	}
+}
+
+func TestApiClientJSONGetInvalidRequest(t *testing.T){
+	fmt.Println("Running TestApiClientJSONGetInvalidRequest...")
+
+	mapping := map[string]string{
+		"foo": "bar",
+	}
+	expected := []byte("")
+	handler := mockHandler(HTTP_UNAVAILABLE, mapping)
+	tServer := httptest.NewServer(http.HandlerFunc(handler))
+	defer tServer.Close()
+
+	apiClient := NewApiClient()
+	b, err := apiClient.JSONGetRequest(tServer.URL)
+	if err == nil {
+		t.Errorf("ApiClient.JSONGetRequest was unexpectedly successful")
+	}
+	if fmt.Sprintf("%q", b) != fmt.Sprintf("%q", expected){
+		t.Errorf("ApiClient.JSONGetRequest returned value '%q'\nexpected:'%q'\n", b, expected)
+	}
 }
 
 func TestApiClientJSONPostRequest(t *testing.T){
 	fmt.Println("Running TestApiClientJSONPostRequest...")
 
+	handler := mockHandler(HTTP_OK, nil)
+	tServer := httptest.NewServer(http.HandlerFunc(handler))
+	defer tServer.Close()
+
 	apiClient := NewApiClient()
-	fmt.Println(apiClient)
-	// test post with valid and invalid url
+	payload := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
+	err := apiClient.JSONPostRequest(tServer.URL, payload)
+	if err != nil {
+		t.Errorf("ApiClient.JSONPostRequest returned unexpected error %s", err)
+	}
+}
+
+func TestApiClientJSONPostInvalidRequest(t *testing.T){
+	fmt.Println("Running TestApiClientJSONPostRequest...")
+
+	handler := mockHandler(HTTP_UNAVAILABLE, nil)
+	tServer := httptest.NewServer(http.HandlerFunc(handler))
+	defer tServer.Close()
+
+	apiClient := NewApiClient()
+	payload := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
+	err := apiClient.JSONPostRequest(tServer.URL, payload)
+	if err == nil {
+		t.Errorf("ApiClient.JSONPostRequest was unexpectedly successful")
+	}
 }
 
 func TestBatchGeneratePayouts(t *testing.T) {
@@ -79,7 +172,7 @@ func TestBatchGeneratePayouts(t *testing.T) {
 
 	if actual != expected {
 		t.Errorf(
-			"Expected Batch.GeneratePayouts() to return a list of values that sum up to %d\nReceived %v which sums up to %d instead'",
+			"Expected Batch.GeneratePayouts() to return a list of values that sum up to %d\nReceived %v which sums up to %d instead",
 			expected, payouts, actual)
 	}
 }

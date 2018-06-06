@@ -35,10 +35,26 @@ func mockHandler(status int, entity interface{}) func(http.ResponseWriter, *http
 	}
 }
 
+type testClient struct {
+	GetResponse func(url string) ([]byte, error)
+	PostResponse func(url string, payload *bytes.Buffer) (error)
+}
+
+func (t *testClient) JSONGetRequest(url string) ([]byte, error){
+	return t.GetResponse(url) // []byte(""), nil
+}
+
+func (t *testClient) JSONPostRequest(url string, payload *bytes.Buffer) error {
+	return t.PostResponse(url, payload) // nil
+}
+
 func TestWalletSendTransaction(t *testing.T) {
 	fmt.Println("Running TestWalletSendTransaction...")
 
-	j := NewWallet("Alice")
+	client := &testClient{
+		PostResponse: func(url string, payload *bytes.Buffer) (error) { return nil },
+	}
+	j := &Wallet{client, "Alice"}
 	b := Address("Bob")
 
 	cases := []struct {
@@ -64,6 +80,59 @@ func TestWalletSendTransaction(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestWalletGetTransactions(t *testing.T) {
+	fmt.Println("Running TestWalletGetTransactions...")
+
+	now := time.Now()
+	past := now.Add(time.Duration(-1000) * time.Second)
+	future := now.Add(time.Duration(1000) * time.Second)
+
+	txns := []*Transaction{
+		&Transaction{
+			past,
+			"Alice",
+			"Bob",
+			"10.00",
+		},
+		&Transaction{
+			future,
+			"Alice",
+			"Bob",
+			"10.00",
+		},
+	}
+
+	client := &testClient{
+		GetResponse: func(url string) ([]byte, error) {
+			return json.Marshal(txns)
+		},
+	}
+	j := &Wallet{client, "Bob"}
+
+	returnedTxns, err := j.GetTransactions(now)
+	if err != nil {
+		t.Errorf("Did not successfully fetch transactions. Saw error '%s' instead", err)
+	}
+
+	expected := txns[1]
+	actual := returnedTxns[0]
+
+	// have to do a manual deep-comparison because of the transaction.Amount values
+	// this to me screens code smell and reimplies a refactoring is needed somewhere
+	// probably a Coin type that can abstract away all this complexity
+	expectedAmount, _ := j.JobcoinToInt(expected.Amount)
+	actualAmount := actual.Amount
+	if !(
+		(fmt.Sprintf("%v", expectedAmount) == actualAmount) &&
+		(expected.Timestamp.Equal(actual.Timestamp)) &&
+		(expected.Source == actual.Source) &&
+		(expected.Recipient == actual.Recipient)){
+		t.Errorf("Returned transactions %q did not match expected transactions %q", returnedTxns, txns)
+	}
+
+	fmt.Println(returnedTxns)
 }
 
 func mockTransaction() *Transaction {

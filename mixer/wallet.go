@@ -42,6 +42,11 @@ func CreateAddresses(total int) (addresses []Address) {
 }
 */
 
+type Client interface {
+	JSONGetRequest(url string) ([]byte, error)
+	JSONPostRequest(url string, payload *bytes.Buffer) (error)
+}
+
 type ApiClient struct {
 	*http.Client
 }
@@ -49,7 +54,6 @@ type ApiClient struct {
 func NewApiClient() *ApiClient {
 	return &ApiClient{&http.Client{}}
 }
-
 
 func (a *ApiClient) JSONGetRequest(url string) ([]byte, error) {
 	var byteStream []byte
@@ -111,7 +115,7 @@ type Transaction struct {
 }
 
 type Wallet struct {
-	client  *ApiClient
+	client  Client
 	Address Address
 }
 
@@ -120,6 +124,8 @@ func NewWallet(address Address) *Wallet {
 		NewApiClient(), address,
 	}
 }
+
+// these functions don't need to live on Wallet necessarily
 
 func (w *Wallet) IntToJobcoin(amount int) string {
 	cents := fmt.Sprintf("%v", amount)
@@ -169,7 +175,6 @@ func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 	}
 
 	json.Unmarshal(b, &allTxns)
-
 	for _, txn := range allTxns {
 		if ((txn.Recipient == w.Address) && txn.Timestamp.After(cutoff)){
 			fmt.Printf("New txn seen: %v\n", txn)

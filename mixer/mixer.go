@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var pool = NewWallet(Address("Pool"))
+var pool = NewWallet("Pool")
 
 // deal in cents
 type Batch struct {

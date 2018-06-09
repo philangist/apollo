@@ -67,12 +67,22 @@ func CoinFromInt(amount int) Coin {
 }
 
 func (c Coin) ToString() string {
+	var whole, decimal string
+
 	cents := fmt.Sprintf("%v", c)
 	size := len(cents)
 	if size <= 2 {
-		return fmt.Sprintf("%v", float64(c.ToInt64())/float64(100))
+		whole = "0"
+		if size == 1 {
+			decimal = fmt.Sprintf("0%v", cents)
+		} else {
+			decimal = cents
+		}
+	} else {
+		whole = cents[:size-2]
+		decimal = cents[size-2:]
 	}
-	return fmt.Sprintf("%v.%v", cents[:size-2], cents[size-2:])
+	return fmt.Sprintf("%v.%v", whole, decimal)
 }
 
 func (c Coin) ToInt64() int64 {

@@ -284,6 +284,32 @@ func TestTestCoinFromString(t *testing.T) {
 	}
 }
 
+func TestTestCoinToString(t *testing.T) {
+	cases := []struct {
+		input  Coin
+		output string
+	}{
+		{Coin(0), "0.00"},
+		{Coin(1), "0.01"},
+		{Coin(10), "0.10"},
+		{Coin(10), "0.10"},
+		{Coin(100), "1.00"},
+		{Coin(100), "1.00"},
+		{Coin(1000), "10.00"},
+		{Coin(1000), "10.00"},
+		{Coin(1000), "10.00"},
+		{Coin(1234500), "12345.00"},
+		{Coin(9998), "99.98"},
+	}
+	for _, c := range cases {
+		actual := c.input.ToString()
+		if actual != c.output {
+			t.Errorf("%v.ToString() did not return expected value %v, received %v instead",
+				c.input, c.output, actual)
+		}
+	}
+}
+
 func TestBatchGeneratePayouts(t *testing.T) {
 	fmt.Println("Running TestBatchGeneratePayouts...")
 

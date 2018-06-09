@@ -126,11 +126,6 @@ func (b *Batch) PollTransactions() {
 	}
 }
 
-func (b *Batch) Run(wg *sync.WaitGroup) {
-	b.PollTransactions()
-	wg.Done()
-}
-
 type Mixer struct {
 	Batches   []*Batch
 	WaitGroup *sync.WaitGroup
@@ -147,7 +142,10 @@ func (m *Mixer) Run() {
 	wg := m.WaitGroup
 	for _, b := range m.Batches {
 		wg.Add(1)
-		go b.Run(wg)
+		go func(b *Batch){
+			b.PollTransactions()
+			wg.Done()
+		}(b)
 	}
 	wg.Wait()
 }

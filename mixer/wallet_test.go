@@ -339,9 +339,8 @@ func TestBatchTumble(t *testing.T) {
 	}
 }
 
-func TestBatchPollTransactions(t *testing.T) {
-	fmt.Println("Running TestBatchPollTransactions...")
-
+func TestMixerRun(t *testing.T) {
+	fmt.Println("Running TestMixerRun...")
 
 	future := time.Now().Add(time.Duration(1000) * time.Second)
 	txns := []*Transaction{
@@ -370,21 +369,6 @@ func TestBatchPollTransactions(t *testing.T) {
 	batch.DelayGenerator = NoDelay
 
 	batch.PollTransactions() // use recover/panic behavior here
-}
-
-func TestMixerRun(t *testing.T) {
-	fmt.Println("Running TestMixerRun...")
-
-	batch := NewBatch(
-		10,
-		2,
-		NewWallet(Address("Alice")),
-		[]Address{
-			Address("Address-1"), Address("Address-2"),
-		},
-	)
-	batch.DelayGenerator = NoDelay
-
 	batches := []*Batch{batch} //, batch, batch}
 	mixer := NewMixer(batches)
 	mixer.Run()

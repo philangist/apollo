@@ -2,7 +2,6 @@ package mixer
 
 import (
 	"bytes"
-	// "crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -37,8 +36,15 @@ func CreateAddresses(total int) (addresses []Address) {
 	return addresses
 }
 
-type Coin int64 // deals with jobcoin values in cents
+type Coin int64 // deals with jobcoin values in cents. should just rename to Cents?
 
+// this assumes we're serializing a jobcoin value. i think the interface to/from Coin
+// is confused so I might need to rethink the access semantics
+func CoinFromInt(amount int) Coin {
+	return Coin(amount * 100)
+}
+
+// this assumes we're deserializing a whole.decimal jobcoin value
 func CoinFromString(amount string) (Coin, error) {
 	index := strings.Index(amount, ".")
 
@@ -62,10 +68,6 @@ func CoinFromString(amount string) (Coin, error) {
 	return Coin(val), nil
 }
 
-func CoinFromInt(amount int) Coin {
-	return Coin(amount * 100)
-}
-
 func (c Coin) ToString() string {
 	var whole, decimal string
 
@@ -83,10 +85,6 @@ func (c Coin) ToString() string {
 		decimal = cents[size-2:]
 	}
 	return fmt.Sprintf("%v.%v", whole, decimal)
-}
-
-func (c Coin) ToInt64() int64 {
-	return int64(c)
 }
 
 type Client interface {
@@ -172,40 +170,12 @@ func NewWallet(address Address) *Wallet {
 	}
 }
 
-func IntToJobcoin(amount int) string {
-	cents := fmt.Sprintf("%v", amount)
-	size := len(cents)
-	if size <= 2 {
-		return fmt.Sprintf("%v", float32(amount)/float32(100))
-	}
-	return fmt.Sprintf("%v.%v", cents[:size-2], cents[size-2:])
-}
-
-func JobcoinToInt(jobcoin string) (int, error) {
-	fmt.Println(jobcoin)
-	cents := strings.Replace(jobcoin, ".", "", 1)
-	value, err := strconv.ParseInt(cents, 10, 32)
-	if err != nil {
-		return int(value), err
-	}
-	// make sure values like '0.1' are returned as 10, not 1
-	if (len(cents) == 2) && (string(cents[0]) == "0") {
-		return int(value) * 10, err
-	}
-
-	return int(value), err
-}
-
 func (w *Wallet) SendTransaction(recipient Address, amount Coin) error {
 	if amount <= 0 {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
 	fmt.Printf("Sending amount '%s' to recipient '%s'\n", amount.ToString(), recipient)
-	if 1 == 1 {
-		return nil
-	}
-
 	txn := Transaction{time.Now(), w.Address, recipient, amount.ToString()}
 	serializedTxn, err := json.Marshal(txn)
 	if err != nil {

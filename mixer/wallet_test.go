@@ -18,19 +18,10 @@ const (
 	HTTP_UNAVAILABLE = http.StatusServiceUnavailable
 )
 
-func mockHandler(status int, entity interface{}) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if status != 0 {
-			w.WriteHeader(status)
-		}
-
-		if entity != nil {
-			serialized, err := json.Marshal(entity)
-			if err != nil {
-				log.Panic(err)
-			}
-			w.Write(serialized)
-		}
+func TestCreateAddresses(t *testing.T){
+	addresses := CreateAddresses(5)
+	if len(addresses) != 5 {
+		t.Errorf("mixer.CreateAddresses(5) did not create 5 addresses, receieved %d back instead", len(addresses))
 	}
 }
 
@@ -40,11 +31,11 @@ type testClient struct {
 }
 
 func (t *testClient) JSONGetRequest(url string) ([]byte, error) {
-	return t.GetResponse(url) // []byte(""), nil
+	return t.GetResponse(url)
 }
 
 func (t *testClient) JSONPostRequest(url string, payload *bytes.Buffer) error {
-	return t.PostResponse(url, payload) // nil
+	return t.PostResponse(url, payload)
 }
 
 func TestWalletSendTransaction(t *testing.T) {
@@ -131,6 +122,22 @@ func TestWalletGetTransactions(t *testing.T) {
 	}
 
 	fmt.Println(returnedTxns)
+}
+
+func mockHandler(status int, entity interface{}) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if status != 0 {
+			w.WriteHeader(status)
+		}
+
+		if entity != nil {
+			serialized, err := json.Marshal(entity)
+			if err != nil {
+				log.Panic(err)
+			}
+			w.Write(serialized)
+		}
+	}
 }
 
 func TestApiClientJSONGetRequest(t *testing.T) {
@@ -248,7 +255,7 @@ func TestCoinFromInt(t *testing.T) {
 	for _, c := range cases {
 		actual := CoinFromInt(c.input)
 		if actual != c.output {
-			t.Errorf("IntToJobcoin(%v) did not return expected value %v, received %v instead",
+			t.Errorf("CoinFromInt(%v) did not return expected value %v, received %v instead",
 				c.input, c.output, actual)
 		}
 	}
@@ -340,24 +347,6 @@ func TestBatchGeneratePayouts(t *testing.T) {
 
 func NoDelay(maxDelay int) int {
 	return 0
-}
-
-func TestBatchTumble(t *testing.T) {
-	fmt.Println("Running TestBatchTumble...")
-
-	batch := NewBatch(
-		120,
-		20,
-		NewWallet(Address("Address-1")),
-		[]Address{
-			Address("Address-1"), Address("Address-2"), Address("Address-3"), Address("Address-4"), Address("Address-5"),
-		},
-	)
-	batch.DelayGenerator = NoDelay
-	err := batch.Tumble()
-	if err != nil {
-		t.Errorf("Expected Batch.Execute() to run successfully, received error '%s'", err)
-	}
 }
 
 func TestMixerRun(t *testing.T) {

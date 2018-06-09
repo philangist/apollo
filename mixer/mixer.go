@@ -76,6 +76,10 @@ func (b *Batch) Tumble() (err error) {
 	payouts := b.GeneratePayouts(amount, totalRecipients)
 
 	for i, payout := range payouts {
+		fmt.Printf("recipient: %v, payouts: %d\n", b.Recipients[i], payout)
+	}
+
+	for i, payout := range payouts {
 		delay := time.Duration(b.DelayGenerator(10))
 		time.Sleep(delay * time.Second)
 

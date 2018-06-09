@@ -58,12 +58,12 @@ func TestWalletSendTransaction(t *testing.T) {
 
 	cases := []struct {
 		recipient Address
-		amount    int
+		amount    Coin
 		valid     bool
 	}{
-		{b, 100, true},
-		{b, 0, false},
-		{b, -100, false},
+		{b, Coin(100), true},
+		{b, Coin(0), false},
+		{b, Coin(-100), false},
 	}
 
 	for _, c := range cases {
@@ -131,17 +131,6 @@ func TestWalletGetTransactions(t *testing.T) {
 	}
 
 	fmt.Println(returnedTxns)
-}
-
-func mockTransaction() *Transaction {
-	expected := &Transaction{
-		time.Now(),
-		Address("source"),
-		Address("recipient"),
-		"10",
-	}
-
-	return expected
 }
 
 func TestApiClientJSONGetRequest(t *testing.T) {
@@ -292,8 +281,8 @@ func TestJobcoinToInt(t *testing.T){
 func TestBatchGeneratePayouts(t *testing.T) {
 	fmt.Println("Running TestBatchGeneratePayouts...")
 
-	amount := 120
-	fee := 20
+	amount := Coin(120)
+	fee := Coin(20)
 
 	source := NewWallet(Address("Address-1"))
 	recipients := []Address{
@@ -303,7 +292,7 @@ func TestBatchGeneratePayouts(t *testing.T) {
 	batch := NewBatch(amount, fee, source, recipients)
 
 	expected := amount - fee
-	actual := 0
+	actual := Coin(0)
 	payouts := batch.GeneratePayouts(expected, len(recipients))
 
 	for _, value := range payouts {

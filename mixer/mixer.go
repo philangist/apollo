@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -20,8 +19,8 @@ func RandomDelay(maxDelay int) int {
 
 // deal in cents
 type Batch struct {
-	Amount     int
-	Fee        int
+	Amount     Coin
+	Fee        Coin
 	Source     *Wallet
 	Recipients []Address
 	StartTime  time.Time // probably rename StartTime
@@ -30,7 +29,7 @@ type Batch struct {
 }
 
 // add timeout
-func NewBatch(amount, fee int, source *Wallet, recipients []Address) *Batch {
+func NewBatch(amount, fee Coin, source *Wallet, recipients []Address) *Batch {
 
 	return &Batch{
 		amount,
@@ -43,9 +42,9 @@ func NewBatch(amount, fee int, source *Wallet, recipients []Address) *Batch {
 	}
 }
 
-func (b *Batch) GeneratePayouts(amount, totalRecipients int) []int {
+func (b *Batch) GeneratePayouts(amount Coin, totalRecipients int) []Coin {
 	rand.Seed(time.Now().UnixNano())
-	payouts := []int{}
+	payouts := []Coin{}
 
 	for i := 0; i < totalRecipients; i++ {
 		if (i + 1) == totalRecipients {
@@ -53,7 +52,7 @@ func (b *Batch) GeneratePayouts(amount, totalRecipients int) []int {
 		} else {
 			// successively take a random integer payout between (1, n/2 + 1) from amount
 			// and update amount with the new value
-			upperBound := amount / 2
+			upperBound := int(amount / 2)
 			if upperBound == 0 {
 				//if upperBound == 0 that imples amount was 1, so we can just add that
 				// payout value and early exit. Note that this implies that
@@ -61,7 +60,7 @@ func (b *Batch) GeneratePayouts(amount, totalRecipients int) []int {
 				payouts = append(payouts, amount)
 				break
 			}
-			payout := rand.Intn(upperBound) + 1
+			payout := Coin(rand.Intn(upperBound) + 1)
 			payouts = append(payouts, payout)
 			amount -= payout
 		}
@@ -93,7 +92,7 @@ func (b *Batch) PollTransactions() {
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source)
 	fmt.Printf("b.Amount is %v\n", b.Amount)
 
-	sum := 0
+	sum := Coin(0)
 	cutoff := b.StartTime                                 // look for new transactions after cutoff
 	timeout := cutoff.Add(time.Duration(1) * time.Second) // exit if no new transactions are seen by timeout
 
@@ -109,10 +108,10 @@ func (b *Batch) PollTransactions() {
 
 		for _, txn := range txns {
 			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
-			amount, _ := strconv.ParseInt(txn.Amount, 10, 32) // validity of amount is guaranteed since b.Source.GetTransactions() did not panic
-			b.Source.SendTransaction(pool.Address, int(amount))
-			sum += int(amount)
-			fmt.Printf("amount is %d\n", int(amount))
+			amount, _ := CoinFromString(txn.Amount) // validity of amount is guaranteed since b.Source.GetTransactions() did not panic
+			b.Source.SendTransaction(pool.Address, amount)
+			sum += amount
+			fmt.Printf("amount is %d\n", amount)
 		}
 		if sum >= b.Amount {
 			fmt.Printf("sum is %d\n", sum)

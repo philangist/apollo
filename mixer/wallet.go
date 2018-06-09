@@ -37,6 +37,29 @@ func CreateAddresses(total int) (addresses []Address) {
 	return addresses
 }
 
+type Coin int64 // 
+
+func CoinFromString(amount string) (Coin, error) {
+	val, err := strconv.ParseInt(amount, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+
+	return Coin(val), nil
+}
+
+func CoinFromInt(amount int) Coin {
+	return Coin(amount * 100)
+}
+
+func (c *Coin) ToString() string {
+	return ""
+}
+
+func (c *Coin) ToInt64() int64 {
+	return int64(0)
+}
+
 type Client interface {
 	JSONGetRequest(url string) ([]byte, error)
 	JSONPostRequest(url string, payload *bytes.Buffer) error
@@ -144,12 +167,12 @@ func JobcoinToInt(jobcoin string) (int, error) {
 	return int(value), err
 }
 
-func (w *Wallet) SendTransaction(recipient Address, amount int) error {
+func (w *Wallet) SendTransaction(recipient Address, amount Coin) error {
 	if amount <= 0 {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
-	convertedAmount := IntToJobcoin(amount)
+	convertedAmount := IntToJobcoin(int(amount))
 	fmt.Printf("Sending amount '%s' to recipient '%s'\n", convertedAmount, recipient)
 	if 1 == 1{
 		return nil

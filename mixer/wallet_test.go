@@ -121,7 +121,7 @@ func TestWalletGetTransactions(t *testing.T) {
 	// have to do a manual deep-comparison because of the transaction.Amount values
 	// this to me screens code smell and reimplies a refactoring is needed somewhere
 	// probably a Coin type that can abstract away all this complexity
-	expectedAmount, _ := JobcoinToInt(expected.Amount)
+	expectedAmount, _ := CoinFromString(expected.Amount)
 	actualAmount := actual.Amount
 	if !((fmt.Sprintf("%v", expectedAmount) == actualAmount) &&
 		(expected.Timestamp.Equal(actual.Timestamp)) &&
@@ -234,19 +234,19 @@ func TestApiClientJSONPostInvalidURL(t *testing.T) {
 	}
 }
 
-func TestIntToJobcoin(t *testing.T){
-	cases := []struct{
-		input int
-		output string
+func TestCoinFromInt(t *testing.T) {
+	cases := []struct {
+		input  int
+		output Coin
 	}{
-		{0, "0"},
-		{1, "0.01"},
-		{10, "0.1"},
-		{100, "1.00"},
-		{1000, "10.00"},
+		{0, Coin(000)},
+		{1, Coin(100)},
+		{10, Coin(1000)},
+		{100, Coin(10000)},
+		{1000, Coin(100000)},
 	}
 	for _, c := range cases {
-		actual := IntToJobcoin(c.input)
+		actual := CoinFromInt(c.input)
 		if actual != c.output {
 			t.Errorf("IntToJobcoin(%v) did not return expected value %v, received %v instead",
 				c.input, c.output, actual)
@@ -254,29 +254,35 @@ func TestIntToJobcoin(t *testing.T){
 	}
 }
 
-func TestJobcoinToInt(t *testing.T){
-	cases := []struct{
-		input string
-		output int
+func TestTestCoinFromString(t *testing.T) {
+	cases := []struct {
+		input  string
+		output Coin
 	}{
-		{"0", 0},
-		{"0.01", 1},
-		{"0.10", 10},
-		{"0.1", 10},
-		{"1.00", 100},
-		// {"1.0", 100},
-		{"10.00", 1000},
-		// {"10.0", 1000},
+		{"0", Coin(0)},
+		{"0.01", Coin(1)},
+		{"0.10", Coin(10)},
+		{"0.1", Coin(10)},
+		{"1.00", Coin(100)},
+		{"1.0", Coin(100)},
+		{"10.00", Coin(1000)},
+		{"10.0", Coin(1000)},
+		{"10", Coin(1000)},
+		{"12345", Coin(1234500)},
+		{"99.98", Coin(9998)},
 	}
 	for _, c := range cases {
-		actual, _ := JobcoinToInt(c.input)
+		actual, err := CoinFromString(c.input)
+		if err != nil {
+			t.Errorf("CoinFromString(%s) returned error '%s'\n", c.input, err)
+		}
+
 		if actual != c.output {
-			t.Errorf("JobcoinToInt(%v) did not return expected value %v, received %v instead",
+			t.Errorf("CoinFromString(%v) did not return expected value %v, received %v instead",
 				c.input, c.output, actual)
 		}
 	}
 }
-
 
 func TestBatchGeneratePayouts(t *testing.T) {
 	fmt.Println("Running TestBatchGeneratePayouts...")
@@ -342,7 +348,7 @@ func TestMixerRun(t *testing.T) {
 	}
 
 	client := &testClient{
-		GetResponse: func(url string) ([]byte, error) {return json.Marshal(txns)},
+		GetResponse:  func(url string) ([]byte, error) { return json.Marshal(txns) },
 		PostResponse: func(url string, payload *bytes.Buffer) error { return nil },
 	}
 	w := &Wallet{client, "Bob"}
@@ -357,7 +363,7 @@ func TestMixerRun(t *testing.T) {
 	)
 	batch.DelayGenerator = NoDelay
 
-	batch.PollTransactions() // use recover/panic behavior here
+	batch.PollTransactions()   // use recover/panic behavior here
 	batches := []*Batch{batch} //, batch, batch}
 	mixer := NewMixer(batches)
 	mixer.Run()

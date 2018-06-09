@@ -19,12 +19,12 @@ func RandomDelay(maxDelay int) int {
 
 // deal in cents
 type Batch struct {
-	Amount     Coin
-	Fee        Coin
-	Source     *Wallet
-	Recipients []Address
-	StartTime  time.Time // probably rename StartTime
-	PollInterval time.Duration
+	Amount         Coin
+	Fee            Coin
+	Source         *Wallet
+	Recipients     []Address
+	StartTime      time.Time // probably rename StartTime
+	PollInterval   time.Duration
 	DelayGenerator DelayGenerator // rename this also
 }
 
@@ -141,7 +141,7 @@ func (m *Mixer) Run() {
 	wg := m.WaitGroup
 	for _, b := range m.Batches {
 		wg.Add(1)
-		go func(b *Batch){
+		go func(b *Batch) {
 			b.PollTransactions()
 			wg.Done()
 		}(b)

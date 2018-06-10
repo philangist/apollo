@@ -323,6 +323,16 @@ func TestBatchGeneratePayouts(t *testing.T) {
 	}
 }
 
+func TestNewMixer(t *testing.T) {
+	mixer := NewMixer([]*Batch{})
+
+	expected := HourScopedPool().Address
+	actual := mixer.Pool().Address
+	if actual != expected {
+		t.Errorf("Mixer should've returned hour scoped pool address '%v'. Saw %v instead.", expected, actual)
+	}
+}
+
 func TestMixerRun(t *testing.T) {
 	fmt.Println("Running TestMixerRun...")
 

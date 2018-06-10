@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -16,8 +17,8 @@ func (cli *CLI) Usage() {
 	fmt.Println("   --amount AMOUNT --destination \"ADDRESS1 ADDRESS2 ...ADDRESSN\" - Send AMOUNT of Jobcoins to ADDRESSES that you own")
 }
 
-func (cli *CLI) Parse() (int, []mixer.Address) {
-	amount := flag.Int("amount", 0, "amount of Jobcoin to tumble")
+func (cli *CLI) Parse() (string, []mixer.Address) {
+	amount := flag.String("amount", "", "amount of Jobcoin to tumble")
 	destination := flag.String("destination", "", "amount of Jobcoin to tumble")
 
 	flag.Parse()
@@ -37,11 +38,17 @@ func main() {
 	cli := &CLI{}
 	amount, recipients := cli.Parse()
 	source := mixer.NewWallet(mixer.CreateAddresses(1)[0])
-	fmt.Printf("Send %d Jobcoins to tumbler address: %s\n", amount, source)
-	fee := int(float32(amount) * float32(0.2))
+	fmt.Printf("Send %v Jobcoins to tumbler address: %s\n", amount, source.Address)
+
+	parsedAmount, err := mixer.CoinFromString(amount)
+	if err != nil {
+		log.Panic(fmt.Errorf("amount '%v' is not a valid numeric value", amount))
+	}
+
+	fee := int64(float64(parsedAmount) * float64(0.2))
 
 	batch := mixer.NewBatch(
-		mixer.Coin(amount), mixer.Coin(fee), source, recipients)
+		parsedAmount, mixer.Coin(fee), source, recipients)
 	mixer := mixer.NewMixer([]*mixer.Batch{batch})
 	mixer.Run()
 }

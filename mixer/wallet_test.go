@@ -79,18 +79,21 @@ func TestWalletGetTransactions(t *testing.T) {
 	past := now.Add(time.Duration(-1000) * time.Second)
 	future := now.Add(time.Duration(1000) * time.Second)
 
+	amount, _ := CoinFromString("10.00")
+	fmt.Println("amount is ", amount)
+
 	txns := []*Transaction{
 		&Transaction{
 			past,
 			"Alice",
 			"Bob",
-			"10.00",
+			amount,
 		},
 		&Transaction{
 			future,
 			"Alice",
 			"Bob",
-			"10.00",
+			amount,
 		},
 	}
 
@@ -99,8 +102,8 @@ func TestWalletGetTransactions(t *testing.T) {
 			return json.Marshal(txns)
 		},
 	}
-	w := &Wallet{client, "Bob"}
 
+	w := &Wallet{client, "Bob"}
 	returnedTxns, err := w.GetTransactions(now)
 	if err != nil {
 		t.Errorf("Did not successfully fetch transactions. Saw error '%s' instead", err)
@@ -109,19 +112,20 @@ func TestWalletGetTransactions(t *testing.T) {
 	expected := txns[1]
 	actual := returnedTxns[0]
 
-	// have to do a manual deep-comparison because of the transaction.Amount values
-	// this to me screens code smell and reimplies a refactoring is needed somewhere
-	// probably a Coin type that can abstract away all this complexity
-	expectedAmount, _ := CoinFromString(expected.Amount)
+	expectedAmount := expected.Amount
 	actualAmount := actual.Amount
-	if !((fmt.Sprintf("%v", expectedAmount) == actualAmount) &&
+
+	fmt.Println("expectedAmount, actualAmount ", expectedAmount, actualAmount)
+
+	if !((expectedAmount == actualAmount) &&
 		(expected.Timestamp.Equal(actual.Timestamp)) &&
 		(expected.Source == actual.Source) &&
 		(expected.Recipient == actual.Recipient)) {
-		t.Errorf("Returned transactions %q did not match expected transactions %q", returnedTxns, txns)
+		t.Errorf("Returned transaction %v did not match expected transaction %v", actual, expected)
 	}
 
-	fmt.Println(returnedTxns)
+	/*
+	*/
 }
 
 func mockHandler(status int, entity interface{}) func(http.ResponseWriter, *http.Request) {
@@ -353,12 +357,14 @@ func TestMixerRun(t *testing.T) {
 	fmt.Println("Running TestMixerRun...")
 
 	future := time.Now().Add(time.Duration(1000) * time.Second)
+	amount, _ := CoinFromString("10.00")
+
 	txns := []*Transaction{
 		&Transaction{
 			future,
 			"Alice",
 			"Bob",
-			"10.00",
+			amount, // 10.00
 		},
 	}
 

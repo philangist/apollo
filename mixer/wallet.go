@@ -38,13 +38,31 @@ func CreateAddresses(total int) (addresses []Address) {
 
 type Coin int64 // deals with jobcoin values in cents. should just rename to Cents?
 
-// this assumes we're serializing a jobcoin value. i think the interface to/from Coin
-// is confused so I might need to rethink the access semantics
+func (c Coin) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.ToString())
+}
+
+func (c *Coin) UnmarshalJSON(b []byte) error {
+	var raw string
+	err := json.Unmarshal(b, &raw)
+	if err != nil {
+		return err
+	}
+
+	value, err := CoinFromString(raw)
+	if err != nil {
+		return err
+	}
+	*c = value
+	return nil
+}
+
 func CoinFromInt(amount int) Coin {
 	return Coin(amount * 100)
 }
 
 // this assumes we're deserializing a whole.decimal jobcoin value
+// only used when reading data from external sources, never internally
 func CoinFromString(amount string) (Coin, error) {
 	index := strings.Index(amount, ".")
 
@@ -156,7 +174,7 @@ type Transaction struct {
 	Timestamp time.Time `json:"timestamp"`
 	Source    Address   `json:"fromAddress"`
 	Recipient Address   `json:"toAddress"`
-	Amount    string    `json:"amount"`
+	Amount    Coin      `json:"amount"`
 }
 
 type Wallet struct {
@@ -175,8 +193,8 @@ func (w *Wallet) SendTransaction(recipient Address, amount Coin) error {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
-	fmt.Printf("Sending amount '%s' to recipient '%s'\n", amount.ToString(), recipient)
-	txn := Transaction{time.Now(), w.Address, recipient, amount.ToString()}
+	fmt.Printf("Sending amount '%v' to recipient '%s'\n", amount, recipient)
+	txn := Transaction{time.Now(), w.Address, recipient, amount}
 	serializedTxn, err := json.Marshal(txn)
 	if err != nil {
 		log.Panic(err)
@@ -193,7 +211,7 @@ func (w *Wallet) SendTransaction(recipient Address, amount Coin) error {
 
 func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 	var allTxns []*Transaction
-	var filteredTxns []*Transaction
+	var newTxns []*Transaction
 
 	b, err := w.client.JSONGetRequest(FETCH_TXNS_URL)
 	if err != nil {
@@ -208,15 +226,8 @@ func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 	for _, txn := range allTxns {
 		if (txn.Recipient == w.Address) && txn.Timestamp.After(cutoff) {
 			fmt.Printf("New txn seen: %v\n", txn)
-			amount, err := CoinFromString(txn.Amount)
-			if err != nil {
-				return filteredTxns, err
-			}
-
-			txn.Amount = fmt.Sprintf("%d", amount)
-			filteredTxns = append(filteredTxns, txn)
+			newTxns = append(newTxns, txn)
 		}
 	}
-
-	return filteredTxns, nil
+	return newTxns, nil
 }

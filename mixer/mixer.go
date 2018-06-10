@@ -70,6 +70,7 @@ func (b *Batch) GeneratePayouts(amount Coin, totalRecipients int) []Coin {
 }
 
 func (b *Batch) Tumble() (err error) {
+	fmt.Printf("pool fee is %v\n", b.Fee)
 	amount := b.Amount - b.Fee //pay b.Fee amount to the pool
 	totalRecipients := len(b.Recipients)
 
@@ -93,8 +94,7 @@ func (b *Batch) Tumble() (err error) {
 }
 
 func (b *Batch) PollTransactions() {
-	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source)
-	fmt.Printf("b.Amount is %v\n", b.Amount)
+	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source.Address)
 
 	sum := Coin(0)
 	cutoff := b.StartTime                                 // look for new transactions after cutoff
@@ -112,10 +112,10 @@ func (b *Batch) PollTransactions() {
 
 		for _, txn := range txns {
 			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
-			amount, _ := CoinFromString(txn.Amount) // validity of amount is guaranteed since b.Source.GetTransactions() did not panic
-			b.Source.SendTransaction(pool.Address, amount)
-			sum += amount
-			fmt.Printf("amount is %d\n", amount)
+			fmt.Printf("new txn: %v\n", txn)
+			b.Source.SendTransaction(pool.Address, txn.Amount)
+			sum += txn.Amount
+			fmt.Printf("amount is %d\n", txn.Amount)
 		}
 		if sum >= b.Amount {
 			fmt.Printf("sum is %d\n", sum)

@@ -8,13 +8,24 @@ import (
 	"time"
 )
 
-var POOL = NewWallet("Pool") // fix dis dis dis
-
 type DelayGenerator func(int) int
+type WalletGenerator func() *Wallet
 
 func RandomDelay(maxDelay int) int {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(maxDelay)
+}
+
+// generate a new Pool address every hour
+func HourScopedPool() *Wallet {
+	now := time.Now()
+	address := fmt.Sprintf(
+		"Pool-%v-%v-%v-%v",
+		now.Year(), now.Month(), now.Hour(), now.Day(),
+	)
+
+	fmt.Println("Address is ", address)
+	return NewWallet(Address(address))
 }
 
 type Batch struct {
@@ -122,14 +133,14 @@ func (b *Batch) PollTransactions(pool *Wallet) {
 }
 
 type Mixer struct {
-	Pool      *Wallet
-	Batches   []*Batch
-	WaitGroup *sync.WaitGroup
+	Pool          WalletGenerator
+	Batches       []*Batch
+	WaitGroup     *sync.WaitGroup
 }
 
 func NewMixer(batches []*Batch) *Mixer {
 	return &Mixer{
-		POOL,
+		HourScopedPool,
 		batches,
 		&sync.WaitGroup{},
 	}
@@ -137,10 +148,12 @@ func NewMixer(batches []*Batch) *Mixer {
 
 func (m *Mixer) Run() {
 	wg := m.WaitGroup
+	pool := m.Pool()
+
 	for _, b := range m.Batches {
 		wg.Add(1)
 		go func(b *Batch) {
-			b.PollTransactions(m.Pool)
+			b.PollTransactions(pool)
 			wg.Done()
 		}(b)
 	}

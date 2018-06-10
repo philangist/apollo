@@ -358,12 +358,14 @@ func TestMixerRun(t *testing.T) {
 		return 0
 	}
 
-	poolClient := &testClient{
-		PostResponse: func(url string, payload *bytes.Buffer) error { return nil },
+	poolGenerator := func() *Wallet {
+		poolClient := &testClient{
+			PostResponse: func(url string, payload *bytes.Buffer) error { return nil },
+		}
+		return &Wallet{poolClient, "Pool"}
 	}
-	pool := &Wallet{poolClient, "Pool"}
 
 	batches := []*Batch{batch}     //, batch, batch}
-	mixer := &Mixer{pool, batches, &sync.WaitGroup{}}
+	mixer := &Mixer{poolGenerator, batches, &sync.WaitGroup{}}
 	mixer.Run()    // use recover/panic behavior here
 }

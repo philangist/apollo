@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var pool = NewWallet("Pool") // fix dis dis dis
+var POOL = NewWallet("Pool") // fix dis dis dis
 
 type DelayGenerator func(int) int
 
@@ -22,13 +22,13 @@ type Batch struct {
 	Fee            Coin
 	Source         *Wallet
 	Recipients     []Address
-	StartTime      time.Time // probably rename StartTime
+	StartTime      time.Time
 	PollInterval   time.Duration
-	DelayGenerator DelayGenerator // rename this also
+	Timeout        time.Duration
+	DelayGenerator DelayGenerator
 }
 
-// add timeout
-func NewBatch(amount, fee Coin, source *Wallet, recipients []Address) *Batch {
+func NewBatch(amount, fee Coin, source *Wallet, recipients []Address, timeout int) *Batch {
 	return &Batch{
 		amount,
 		fee,
@@ -36,6 +36,7 @@ func NewBatch(amount, fee Coin, source *Wallet, recipients []Address) *Batch {
 		recipients,
 		time.Now(),
 		time.Duration(1) * time.Second,
+		time.Duration(timeout) * time.Second,
 		RandomDelay,
 	}
 }
@@ -67,7 +68,7 @@ func (b *Batch) GeneratePayouts(amount Coin, totalRecipients int) []Coin {
 	return payouts
 }
 
-func (b *Batch) Tumble() (err error) {
+func (b *Batch) Tumble(pool *Wallet) (err error) {
 	amount := b.Amount - b.Fee //keep b.Fee amount in the pool
 	totalRecipients := len(b.Recipients)
 
@@ -87,12 +88,12 @@ func (b *Batch) Tumble() (err error) {
 	return err
 }
 
-func (b *Batch) PollTransactions() {
+func (b *Batch) PollTransactions(pool *Wallet) {
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source.Address)
 
 	sum := Coin(0)
-	cutoff := b.StartTime                                   // look for new transactions after cutoff
-	timeout := cutoff.Add(time.Duration(120) * time.Second) // exit if no new transactions are seen by timeout
+	cutoff := b.StartTime            // look for new transactions after cutoff
+	timeout := cutoff.Add(b.Timeout) // exit if no new transactions are seen by timeout
 
 	for {
 		if timeout.Before(time.Now()) {
@@ -110,22 +111,25 @@ func (b *Batch) PollTransactions() {
 		}
 
 		if sum >= b.Amount {
-			b.Tumble()
+			b.Tumble(pool)
 			break
-		} else {
-			cutoff = time.Now()
-			time.Sleep(b.PollInterval)
 		}
+
+		cutoff = time.Now()
+		time.Sleep(b.PollInterval)
+
 	}
 }
 
 type Mixer struct {
+	Pool      *Wallet
 	Batches   []*Batch
 	WaitGroup *sync.WaitGroup
 }
 
 func NewMixer(batches []*Batch) *Mixer {
 	return &Mixer{
+		POOL,
 		batches,
 		&sync.WaitGroup{},
 	}
@@ -136,7 +140,7 @@ func (m *Mixer) Run() {
 	for _, b := range m.Batches {
 		wg.Add(1)
 		go func(b *Batch) {
-			b.PollTransactions()
+			b.PollTransactions(m.Pool)
 			wg.Done()
 		}(b)
 	}

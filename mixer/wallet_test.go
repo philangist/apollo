@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -242,7 +243,7 @@ func TestApiClientJSONPostInvalidURL(t *testing.T) {
 	}
 }
 
-func TestTestCoinFromString(t *testing.T) {
+func TestCoinFromString(t *testing.T) {
 	cases := []struct {
 		input  string
 		output Coin
@@ -272,7 +273,7 @@ func TestTestCoinFromString(t *testing.T) {
 	}
 }
 
-func TestTestCoinToString(t *testing.T) {
+func TestCoinToString(t *testing.T) {
 	cases := []struct {
 		input  Coin
 		output string
@@ -280,14 +281,10 @@ func TestTestCoinToString(t *testing.T) {
 		{Coin(0), "0.00"},
 		{Coin(1), "0.01"},
 		{Coin(10), "0.10"},
-		{Coin(10), "0.10"},
-		{Coin(100), "1.00"},
 		{Coin(100), "1.00"},
 		{Coin(1000), "10.00"},
-		{Coin(1000), "10.00"},
-		{Coin(1000), "10.00"},
-		{Coin(1234500), "12345.00"},
 		{Coin(9998), "99.98"},
+		{Coin(1234500), "12345.00"},
 	}
 	for _, c := range cases {
 		actual := c.input.ToString()
@@ -309,7 +306,7 @@ func TestBatchGeneratePayouts(t *testing.T) {
 		Address("Address-1"), Address("Address-2"),
 	}
 
-	batch := NewBatch(amount, fee, source, recipients)
+	batch := NewBatch(amount, fee, source, recipients, 1)
 
 	expected := amount - fee
 	actual := Coin(0)
@@ -354,14 +351,19 @@ func TestMixerRun(t *testing.T) {
 		[]Address{
 			Address("Address-1"), Address("Address-2"),
 		},
+		1,
 	)
 
 	batch.DelayGenerator = func(maxDelay int) int {
 		return 0
 	}
 
-	batch.PollTransactions()   // use recover/panic behavior here
-	batches := []*Batch{batch} //, batch, batch}
-	mixer := NewMixer(batches)
-	mixer.Run()
+	poolClient := &testClient{
+		PostResponse: func(url string, payload *bytes.Buffer) error { return nil },
+	}
+	pool := &Wallet{poolClient, "Pool"}
+
+	batches := []*Batch{batch}     //, batch, batch}
+	mixer := &Mixer{pool, batches, &sync.WaitGroup{}}
+	mixer.Run()    // use recover/panic behavior here
 }

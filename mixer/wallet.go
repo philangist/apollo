@@ -36,7 +36,7 @@ func CreateAddresses(total int) (addresses []Address) {
 	return addresses
 }
 
-type Coin int64 // deals with jobcoin values in cents. should just rename to Cents?
+type Coin int64 // Jobcoin values are processed internally as cents
 
 func (c Coin) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.ToString())
@@ -57,7 +57,7 @@ func (c *Coin) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// this assumes we're deserializing a whole.decimal jobcoin value
+// convert Jobcoin to internal cents representation. 10.00 -> 1000
 // only used when reading data from external sources, never internally
 func CoinFromString(amount string) (Coin, error) {
 	index := strings.Index(amount, ".")
@@ -82,6 +82,7 @@ func CoinFromString(amount string) (Coin, error) {
 	return Coin(val), nil
 }
 
+// convert internal cents representation to Jobcoin representation. 1000 -> 10.00
 func (c Coin) ToString() string {
 	var whole, decimal string
 

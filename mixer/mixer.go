@@ -89,7 +89,6 @@ func (b *Batch) Tumble(pool *Wallet) (err error) {
 		delay := time.Duration(b.DelayGenerator(10))
 		time.Sleep(delay * time.Second)
 
-		fmt.Printf("recipient: %v, payout: %d\n", b.Recipients[i], payout)
 		err = pool.SendTransaction(b.Recipients[i], payout)
 		if err != nil {
 			return err
@@ -128,7 +127,6 @@ func (b *Batch) PollTransactions(pool *Wallet) {
 
 		cutoff = time.Now()
 		time.Sleep(b.PollInterval)
-
 	}
 }
 

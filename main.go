@@ -44,7 +44,7 @@ func main() {
 	}
 	fee := mixer.Coin(int64(float64(parsedAmount) * float64(0.2)))
 
-	source := mixer.NewWallet(mixer.CreateAddresses(1)[0])
+	source := mixer.NewWallet(mixer.NewAddresses(1)[0])
 	fmt.Printf("Send %v Jobcoins to tumbler address: %s\n", amount, source.Address)
 
 	batch := mixer.NewBatch(parsedAmount, fee, source, recipients, timeout)

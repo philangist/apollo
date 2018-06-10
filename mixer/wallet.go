@@ -20,17 +20,17 @@ var (
 
 type Address string
 
-func CreateAddresses(total int) (addresses []Address) {
+func NewAddress(address string) Address {
+	return Address(HashString(address))
+}
+
+func NewAddresses(total int) (addresses []Address) {
 	rand.Seed(time.Now().UnixNano())
 	prefix := fmt.Sprintf("%d-%d", time.Now().Unix(), rand.Intn(4294967296))
 
 	for i := 0; i < total; i++ {
-		addresses = append(
-			addresses,
-			Address(
-				HashString(fmt.Sprintf("%s-%d", prefix, i)),
-			),
-		)
+		address := NewAddress(fmt.Sprintf("%s-%d", prefix, i))
+		addresses = append(addresses, address)
 	}
 
 	return addresses

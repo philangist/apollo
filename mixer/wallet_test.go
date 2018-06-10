@@ -19,10 +19,10 @@ const (
 	HTTP_UNAVAILABLE = http.StatusServiceUnavailable
 )
 
-func TestCreateAddresses(t *testing.T){
-	addresses := CreateAddresses(5)
+func TestNewAddresses(t *testing.T){
+	addresses := NewAddresses(5)
 	if len(addresses) != 5 {
-		t.Errorf("mixer.CreateAddresses(5) did not create 5 addresses, receieved %d back instead", len(addresses))
+		t.Errorf("mixer.NewAddresses(5) did not create 5 addresses, receieved %d back instead", len(addresses))
 	}
 }
 

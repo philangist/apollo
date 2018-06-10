@@ -123,9 +123,6 @@ func TestWalletGetTransactions(t *testing.T) {
 		(expected.Recipient == actual.Recipient)) {
 		t.Errorf("Returned transaction %v did not match expected transaction %v", actual, expected)
 	}
-
-	/*
-	*/
 }
 
 func mockHandler(status int, entity interface{}) func(http.ResponseWriter, *http.Request) {
@@ -245,26 +242,6 @@ func TestApiClientJSONPostInvalidURL(t *testing.T) {
 	}
 }
 
-func TestCoinFromInt(t *testing.T) {
-	cases := []struct {
-		input  int
-		output Coin
-	}{
-		{0, Coin(000)},
-		{1, Coin(100)},
-		{10, Coin(1000)},
-		{100, Coin(10000)},
-		{1000, Coin(100000)},
-	}
-	for _, c := range cases {
-		actual := CoinFromInt(c.input)
-		if actual != c.output {
-			t.Errorf("CoinFromInt(%v) did not return expected value %v, received %v instead",
-				c.input, c.output, actual)
-		}
-	}
-}
-
 func TestTestCoinFromString(t *testing.T) {
 	cases := []struct {
 		input  string
@@ -349,10 +326,6 @@ func TestBatchGeneratePayouts(t *testing.T) {
 	}
 }
 
-func NoDelay(maxDelay int) int {
-	return 0
-}
-
 func TestMixerRun(t *testing.T) {
 	fmt.Println("Running TestMixerRun...")
 
@@ -382,7 +355,10 @@ func TestMixerRun(t *testing.T) {
 			Address("Address-1"), Address("Address-2"),
 		},
 	)
-	batch.DelayGenerator = NoDelay
+
+	batch.DelayGenerator = func(maxDelay int) int {
+		return 0
+	}
 
 	batch.PollTransactions()   // use recover/panic behavior here
 	batches := []*Batch{batch} //, batch, batch}

@@ -57,10 +57,6 @@ func (c *Coin) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func CoinFromInt(amount int) Coin {
-	return Coin(amount * 100)
-}
-
 // this assumes we're deserializing a whole.decimal jobcoin value
 // only used when reading data from external sources, never internally
 func CoinFromString(amount string) (Coin, error) {
@@ -193,7 +189,7 @@ func (w *Wallet) SendTransaction(recipient Address, amount Coin) error {
 		return fmt.Errorf("amount should be a positive integer value")
 	}
 
-	fmt.Printf("Sending amount '%v' to recipient '%s'\n", amount, recipient)
+	fmt.Printf("Sending amount '%v' to recipient '%s'\n", amount.ToString(), recipient)
 	txn := Transaction{time.Now(), w.Address, recipient, amount}
 	serializedTxn, err := json.Marshal(txn)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var pool = NewWallet("Pool")
+var pool = NewWallet("Pool") // fix dis dis dis
 
 type DelayGenerator func(int) int
 
@@ -17,7 +17,6 @@ func RandomDelay(maxDelay int) int {
 	return rand.Intn(maxDelay)
 }
 
-// deal in cents
 type Batch struct {
 	Amount         Coin
 	Fee            Coin
@@ -30,14 +29,13 @@ type Batch struct {
 
 // add timeout
 func NewBatch(amount, fee Coin, source *Wallet, recipients []Address) *Batch {
-
 	return &Batch{
 		amount,
 		fee,
 		source,
 		recipients,
 		time.Now(),
-		time.Duration(1),
+		time.Duration(1) * time.Second,
 		RandomDelay,
 	}
 }
@@ -70,20 +68,16 @@ func (b *Batch) GeneratePayouts(amount Coin, totalRecipients int) []Coin {
 }
 
 func (b *Batch) Tumble() (err error) {
-	fmt.Printf("pool fee is %v\n", b.Fee)
-	amount := b.Amount - b.Fee //pay b.Fee amount to the pool
+	amount := b.Amount - b.Fee //keep b.Fee amount in the pool
 	totalRecipients := len(b.Recipients)
 
 	payouts := b.GeneratePayouts(amount, totalRecipients)
 
 	for i, payout := range payouts {
-		fmt.Printf("recipient: %v, payouts: %d\n", b.Recipients[i], payout)
-	}
-
-	for i, payout := range payouts {
 		delay := time.Duration(b.DelayGenerator(10))
 		time.Sleep(delay * time.Second)
 
+		fmt.Printf("recipient: %v, payout: %d\n", b.Recipients[i], payout)
 		err = pool.SendTransaction(b.Recipients[i], payout)
 		if err != nil {
 			return err
@@ -97,8 +91,8 @@ func (b *Batch) PollTransactions() {
 	fmt.Printf("b.StartTime: %s\nPolling address: %s\n", b.StartTime, b.Source.Address)
 
 	sum := Coin(0)
-	cutoff := b.StartTime                                 // look for new transactions after cutoff
-	timeout := cutoff.Add(time.Duration(1) * time.Second) // exit if no new transactions are seen by timeout
+	cutoff := b.StartTime                                   // look for new transactions after cutoff
+	timeout := cutoff.Add(time.Duration(120) * time.Second) // exit if no new transactions are seen by timeout
 
 	for {
 		if timeout.Before(time.Now()) {
@@ -111,20 +105,16 @@ func (b *Batch) PollTransactions() {
 		}
 
 		for _, txn := range txns {
-			fmt.Printf("new txn.Timestamp: %s\n", txn.Timestamp)
-			fmt.Printf("new txn: %v\n", txn)
 			b.Source.SendTransaction(pool.Address, txn.Amount)
 			sum += txn.Amount
-			fmt.Printf("amount is %d\n", txn.Amount)
 		}
+
 		if sum >= b.Amount {
-			fmt.Printf("sum is %d\n", sum)
 			b.Tumble()
 			break
 		} else {
 			cutoff = time.Now()
-			time.Sleep(b.PollInterval * time.Second)
-			continue
+			time.Sleep(b.PollInterval)
 		}
 	}
 }

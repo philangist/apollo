@@ -32,6 +32,8 @@ func (t *testClient) JSONPostRequest(url string, payload *bytes.Buffer) error {
 }
 
 func TestNewAddresses(t *testing.T){
+	fmt.Println("Running TestNewAddresses...")
+
 	addresses := NewAddresses(5)
 	if len(addresses) != 5 {
 		t.Errorf("mixer.NewAddresses(5) did not create 5 addresses, receieved %d back instead", len(addresses))
@@ -184,7 +186,7 @@ func TestApiClientJSONGetInvalidRequest(t *testing.T) {
 }
 
 func TestApiClientJSONGetInvalidURL(t *testing.T) {
-	fmt.Println("Running TestApiClientJSONGetInvalidRequest...")
+	fmt.Println("Running TestApiClientJSONGetInvalidURL...")
 
 	handler := mockHandler(0, nil)
 	tServer := httptest.NewServer(http.HandlerFunc(handler))
@@ -213,7 +215,7 @@ func TestApiClientJSONPostRequest(t *testing.T) {
 }
 
 func TestApiClientJSONPostInvalidRequest(t *testing.T) {
-	fmt.Println("Running TestApiClientJSONPostRequest...")
+	fmt.Println("Running TestApiClientJSONPostInvalidRequest...")
 
 	handler := mockHandler(HTTP_UNAVAILABLE, nil)
 	tServer := httptest.NewServer(http.HandlerFunc(handler))
@@ -228,7 +230,7 @@ func TestApiClientJSONPostInvalidRequest(t *testing.T) {
 }
 
 func TestApiClientJSONPostInvalidURL(t *testing.T) {
-	fmt.Println("Running TestApiClientJSONPostRequest...")
+	fmt.Println("Running TestApiClientJSONPostInvalidURL...")
 
 	handler := mockHandler(0, nil)
 	tServer := httptest.NewServer(http.HandlerFunc(handler))

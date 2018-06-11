@@ -9,23 +9,10 @@ import (
 )
 
 type DelayGenerator func(int) int
-type WalletGenerator func() *Wallet
 
 func RandomDelay(maxDelay int) int {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(maxDelay)
-}
-
-// generate a new Pool address every hour
-func HourScopedPool() *Wallet {
-	now := time.Now()
-	address := fmt.Sprintf(
-		"Pool-%v-%v-%v-%v",
-		now.Year(), now.Month(), now.Hour(), now.Day(),
-	)
-
-	fmt.Println("Address is ", address)
-	return NewWallet(Address(address))
 }
 
 type Batch struct {
@@ -130,15 +117,29 @@ func (b *Batch) PollTransactions(pool *Wallet) {
 	}
 }
 
+type PoolStrategy func() *Wallet
+
+// generate a new Pool address every hour
+func HourlyPool() *Wallet {
+	now := time.Now()
+	address := fmt.Sprintf(
+		"Pool-%v-%v-%v-%v",
+		now.Year(), now.Month(), now.Hour(), now.Day(),
+	)
+
+	fmt.Println("Address is ", address)
+	return NewWallet(Address(address))
+}
+
 type Mixer struct {
-	Pool          WalletGenerator
+	Pool          PoolStrategy
 	Batches       []*Batch
 	WaitGroup     *sync.WaitGroup
 }
 
 func NewMixer(batches []*Batch) *Mixer {
 	return &Mixer{
-		HourScopedPool,
+		HourlyPool,
 		batches,
 		&sync.WaitGroup{},
 	}

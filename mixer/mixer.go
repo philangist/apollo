@@ -98,6 +98,7 @@ func (b *Batch) PollTransactions(pool *Wallet) {
 		}
 
 		txns, err := b.Source.GetTransactions(cutoff)
+		cutoff = time.Now()
 		if err != nil {
 			log.Panic(err)
 		}
@@ -112,7 +113,6 @@ func (b *Batch) PollTransactions(pool *Wallet) {
 			break
 		}
 
-		cutoff = time.Now()
 		time.Sleep(b.PollInterval)
 	}
 }

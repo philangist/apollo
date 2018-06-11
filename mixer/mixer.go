@@ -132,9 +132,9 @@ func HourlyPool() *Wallet {
 }
 
 type Mixer struct {
-	Pool          PoolStrategy
-	Batches       []*Batch
-	WaitGroup     *sync.WaitGroup
+	Pool      PoolStrategy
+	Batches   []*Batch
+	WaitGroup *sync.WaitGroup
 }
 
 func NewMixer(batches []*Batch) *Mixer {

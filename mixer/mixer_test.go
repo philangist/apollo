@@ -68,7 +68,7 @@ func TestMixerRun(t *testing.T) {
 	bobGetCalls := 0
 	bobPostCalls := 0
 	client := &testClient{
-		GetResponse:  func(url string) ([]byte, error) {
+		GetResponse: func(url string) ([]byte, error) {
 			bobGetCalls += 1
 			return json.Marshal(txns)
 		},
@@ -98,7 +98,7 @@ func TestMixerRun(t *testing.T) {
 	}
 	mixer := &Mixer{poolGenerator, batches, &sync.WaitGroup{}}
 
-	mixer.Run()    // use recover/panic behavior here
+	mixer.Run() // use recover/panic behavior here
 
 	if (bobGetCalls != bobPostCalls) && (bobGetCalls != 1) {
 		t.Errorf(
@@ -107,7 +107,7 @@ func TestMixerRun(t *testing.T) {
 		)
 	}
 
-	if (poolPostCalls != len(recipients)) {
+	if poolPostCalls != len(recipients) {
 		t.Errorf("Expected poolPostCalls to have a value of %d for recipients: %v. Saw '%d' instead.", poolPostCalls, recipients, len(recipients))
 	}
 }

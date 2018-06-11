@@ -31,7 +31,7 @@ func (t *testClient) JSONPostRequest(url string, payload *bytes.Buffer) error {
 	return t.PostResponse(url, payload)
 }
 
-func TestNewAddresses(t *testing.T){
+func TestNewAddresses(t *testing.T) {
 	fmt.Println("Running TestNewAddresses...")
 
 	addresses := NewAddresses(5)

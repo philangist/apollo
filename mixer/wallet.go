@@ -214,10 +214,10 @@ func (w *Wallet) GetTransactions(cutoff time.Time) ([]*Transaction, error) {
 	// of core data structures in the app (just Transaction and Coin are enough for all
 	// interactions with the external world) and this behavior is more reflective of how
 	// polling a real blockchain would work. There's obviously a performance hit for making
-	// the same request every time and performing an O(n) linear scan for txns that meet
-	// the filter criteria - timestamp > cutoff and recipient == w.Address but it simplified
-	// the development process and this solution could realistically scale to several tens-hundreds
-	// of thousands of transaction records being returned per call without any problems.
+	// the same request every time GetTransactions is called and performing an O(n) scan for
+	// txns that meet the filter criteria - timestamp > cutoff and recipient == w.Address
+	// but it simplified the development process and this solution could easily scale to several
+	// tens-hundreds of thousands of transaction records being returned per call without any problems.
 
 	b, err := w.client.JSONGetRequest(FETCH_TXNS_URL)
 	if err != nil {

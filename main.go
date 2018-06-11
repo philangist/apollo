@@ -22,23 +22,6 @@ func (cli *CLI) Parse() (mixer.Coin, int, []mixer.Address) {
 	destination := flag.String("destination", "", "amount of Jobcoin to tumble")
 
 	flag.Parse()
-	if len(*destination) == 0 {
-		cli.Usage()
-		os.Exit(1)
-	}
-
-	var addresses []mixer.Address
-	for _, address := range strings.Split(*destination, " ") {
-		if address == "" {
-			continue
-		}
-		addresses = append(addresses, mixer.Address(address))
-	}
-	if len(addresses) == 0 {
-		fmt.Println("No valid addresses seen. Addresses must be non-empty strings")
-		cli.Usage()
-		os.Exit(1)
-	}
 
 	parsedAmount, err := mixer.CoinFromString(*amount)
 	if err != nil {
@@ -59,6 +42,23 @@ func (cli *CLI) Parse() (mixer.Coin, int, []mixer.Address) {
 		os.Exit(1)
 	}
 
+	if len(*destination) == 0 {
+		cli.Usage()
+		os.Exit(1)
+	}
+
+	var addresses []mixer.Address
+	for _, address := range strings.Split(*destination, " ") {
+		if address == "" {
+			continue
+		}
+		addresses = append(addresses, mixer.Address(address))
+	}
+	if len(addresses) == 0 {
+		fmt.Println("No valid addresses seen. Addresses must be non-empty strings")
+		cli.Usage()
+		os.Exit(1)
+	}
 
 	return parsedAmount, *timeout, addresses
 }
